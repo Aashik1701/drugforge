@@ -1,0 +1,49 @@
+# ---------------------------------------------------------------------------
+# docker/Dockerfile.vina-e2e — prove Vina docking works from a bare container.
+#
+# Starts from python:3.11-slim, installs the backend requirements, runs
+# scripts/setup_vina.sh (pinned + checksum-verified Vina), then the entrypoint
+# boots the API + LocalWorker and runs a real docking job end to end,
+# asserting a real negative affinity, non-null PDBQT, and elapsed_seconds > 0.
+#
+# Build + run (from repo root):
+#   docker build  --platform=linux/amd64 -f docker/Dockerfile.vina-e2e -t drugforge-vina-e2e .
+#   docker run --rm --platform=linux/amd64 drugforge-vina-e2e
+#
+# --platform=linux/amd64 is required: scripts/setup_vina.sh supports
+# linux-x86_64 (the canonical benchmark/CI target), not linux-aarch64.
+# On an Apple-Silicon host this runs under QEMU emulation (slow but correct).
+# ---------------------------------------------------------------------------
+FROM python:3.11-slim
+
+# curl: needed by scripts/setup_vina.sh. ca-certificates: TLS to github.com.
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends curl ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+
+# Deps first for layer caching.
+COPY backend/requirements.txt backend/requirements.txt
+RUN pip install --no-cache-dir -r backend/requirements.txt
+
+# The rest of the repo (scripts/, backend/app, backend/models, backend/targets).
+COPY . .
+
+# Acquire the pinned, checksum-verified Vina binary -> backend/bin/vina.
+# This is the ONLY way the binary enters the image; it is never committed.
+RUN scripts/setup_vina.sh && scripts/verify_vina.sh
+
+ENV COMPUTE_MODE=balanced \
+    DOCKING_SEED=42 \
+    DOCKING_CPU=1 \
+    DOCKING_N_POSES=5 \
+    MODELS_PATH=/app/backend/models \
+    JOB_STORE_PATH=/tmp/drugforge_jobs.db \
+    PYTHONUNBUFFERED=1
+
+# Number of docking runs the e2e does (>=1 real job; >1 also checks determinism).
+ENV E2E_RUNS=3 \
+    E2E_EXHAUSTIVENESS=8
+
+ENTRYPOINT ["/app/docker/vina-e2e-entrypoint.sh"]

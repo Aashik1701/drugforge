@@ -124,6 +124,13 @@ def _job_to_status_response(job) -> DockStatusResponse:
         finished_at=job.completed_at.isoformat() if job.completed_at else None,
         elapsed_seconds=output.get("elapsed_seconds"),
         error=job.error,
+        # Determinism provenance. exhaustiveness falls back to the job input
+        # for jobs that failed before the worker recorded it in output.
+        exhaustiveness=output.get("exhaustiveness", job.input.get("exhaustiveness")),
+        seed=output.get("seed"),
+        cpu=output.get("cpu"),
+        num_modes=output.get("num_modes"),
+        vina_version=output.get("vina_version"),
     )
 
 
@@ -235,7 +242,11 @@ async def get_docking_history() -> list[dict[str, Any]]:
             "smiles": job.input.get("smiles"),
             "affinity_kcal_mol": output.get("affinity_kcal_mol"),
             "mode": output.get("mode"),
-            "exhaustiveness": job.input.get("exhaustiveness"),
+            "exhaustiveness": output.get("exhaustiveness", job.input.get("exhaustiveness")),
+            "seed": output.get("seed"),
+            "cpu": output.get("cpu"),
+            "num_modes": output.get("num_modes"),
+            "vina_version": output.get("vina_version"),
             "started_at": job.created_at.isoformat() if job.created_at else None,
             "finished_at": job.completed_at.isoformat() if job.completed_at else None,
             "elapsed_seconds": output.get("elapsed_seconds"),

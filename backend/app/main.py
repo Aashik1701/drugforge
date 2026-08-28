@@ -16,6 +16,7 @@ from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 
 from utils.model_loader import ModelLoader
+from utils.vina_env import probe_vina_cached
 from compute.policy import ComputePolicy
 from compute.resource_manager import ResourceManager
 from compute.router import ComputeRouter
@@ -212,6 +213,11 @@ class HealthResponse(BaseModel):
     # only the fields above are unaffected.
     compute_mode: str = "unknown"
     queue: Dict[str, int] = {}
+    # Additive fields (vina reproducibility pass). vina_available is True only
+    # when a runnable, arch-compatible binary is present; vina_version is the
+    # version it actually reports (None if unavailable). See utils/vina_env.py.
+    vina_available: bool = False
+    vina_version: str | None = None
 
 
 # ============================================================================
@@ -246,6 +252,7 @@ async def health_check() -> HealthResponse:
     """
     loaded = model_loader.list_loaded()
     docking_active = await job_store.count_active("docking")
+    vina = probe_vina_cached()
     return HealthResponse(
         status="healthy",
         version="1.0.0",
@@ -253,6 +260,8 @@ async def health_check() -> HealthResponse:
         models_available=loaded,
         compute_mode=compute_policy.mode.value,
         queue={"docking_active": docking_active},
+        vina_available=vina.available,
+        vina_version=vina.version,
     )
 
 

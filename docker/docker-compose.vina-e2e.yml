@@ -1,0 +1,18 @@
+# Clean-container proof that Vina docking works end to end.
+#
+#   docker compose -f docker/docker-compose.vina-e2e.yml up --build
+#
+# The service builds from python:3.11-slim, runs scripts/setup_vina.sh, boots
+# the API + LocalWorker, and executes real docking job(s). It exits 0 on
+# success, non-zero on any failure — so it doubles as a CI check.
+services:
+  vina-e2e:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.vina-e2e
+    # linux/amd64: scripts/setup_vina.sh supports linux-x86_64, not
+    # linux-aarch64. On Apple Silicon this runs under QEMU (slow but correct).
+    platform: linux/amd64
+    environment:
+      E2E_RUNS: "3"
+      E2E_EXHAUSTIVENESS: "8"

@@ -24,13 +24,42 @@ from typing import Any, Optional
 
 from jobs.models import JobStatus
 from jobs.store import JobStore
+from utils.vina_env import EXPECTED_VINA_VERSION, resolved_vina_version, vina_bin_path
 
 logger = logging.getLogger(__name__)
 
 # --- Paths --- (identical to the old routers/dock.py constants)
 BACKEND_DIR = Path(__file__).resolve().parents[3]
 TARGETS_DIR = Path(os.getenv("DOCKING_TARGETS_DIR", BACKEND_DIR / "targets"))
-VINA_BIN = Path(os.getenv("VINA_BIN", BACKEND_DIR / "bin" / "vina"))
+VINA_BIN = vina_bin_path()  # backend/bin/vina, or $VINA_BIN — see utils/vina_env.py
+
+
+def _docking_seed() -> int:
+    """Fixed by default — never time- or PID-derived. Overridable via DOCKING_SEED."""
+    try:
+        return int(os.getenv("DOCKING_SEED", "42"))
+    except ValueError:
+        return 42
+
+
+def _docking_cpu() -> int:
+    """
+    Vina threads. Pinned to 1 by default: with a fixed --seed, Vina's Monte
+    Carlo search is only bit-for-bit reproducible for a *fixed* CPU count, so
+    a single fixed value is what makes stored affinities comparable across
+    machines with different core counts. Overridable via DOCKING_CPU.
+    """
+    try:
+        return max(1, int(os.getenv("DOCKING_CPU", "1")))
+    except ValueError:
+        return 1
+
+
+def _docking_num_modes() -> int:
+    try:
+        return int(os.getenv("DOCKING_N_POSES", "5"))
+    except ValueError:
+        return 5
 
 TARGET_CONFIG: dict[str, dict[str, Any]] = {
     "cox2": {
@@ -46,10 +75,20 @@ TARGET_CONFIG: dict[str, dict[str, Any]] = {
 }
 
 
-def _prepare_ligand_pdbqt_from_smiles(smiles: str) -> str:
-    """Convert SMILES → 3D conformer → PDBQT using RDKit + Meeko. Unchanged."""
+def _prepare_ligand_pdbqt_from_smiles(smiles: str, seed: Optional[int] = None) -> str:
+    """
+    Convert SMILES → 3D conformer → PDBQT using RDKit + Meeko.
+
+    The ETKDG embedding is seeded (default DOCKING_SEED) on BOTH the normal
+    and the random-coords fallback path, so the conformer handed to Vina is
+    itself reproducible — otherwise a fixed --seed on a non-deterministic
+    starting geometry would still drift.
+    """
     from rdkit import Chem
     from rdkit.Chem import AllChem
+
+    if seed is None:
+        seed = _docking_seed()
 
     mol = Chem.MolFromSmiles(smiles)
     if mol is None:
@@ -57,10 +96,10 @@ def _prepare_ligand_pdbqt_from_smiles(smiles: str) -> str:
 
     mol = Chem.AddHs(mol)
     params = AllChem.ETKDGv3()
-    params.randomSeed = 42
+    params.randomSeed = seed
     embed_res = AllChem.EmbedMolecule(mol, params)
     if embed_res == -1:
-        embed_res = AllChem.EmbedMolecule(mol, useRandomCoords=True)
+        embed_res = AllChem.EmbedMolecule(mol, useRandomCoords=True, randomSeed=seed)
         if embed_res == -1:
             raise ValueError("Failed to embed ligand in 3D")
 
@@ -124,8 +163,10 @@ async def run_docking_job(job_id: str, smiles: str, target: str, exhaustiveness:
     """
     if not VINA_BIN.exists():
         raise FileNotFoundError(
-            f"Vina binary not found at {VINA_BIN}. "
-            f"Download it from https://github.com/ccsb-scripps/AutoDock-Vina/releases"
+            f"Vina binary not found at {VINA_BIN}. Run scripts/setup_vina.sh to "
+            f"download and checksum-verify a pinned AutoDock Vina "
+            f"{EXPECTED_VINA_VERSION} build for this platform "
+            f"(see docs/development/local-worker.md)."
         )
 
     target_cfg = TARGET_CONFIG[target]
@@ -136,8 +177,17 @@ async def run_docking_job(job_id: str, smiles: str, target: str, exhaustiveness:
             f"Run `python download_targets.py` to fetch protein structures."
         )
 
-    logger.info("Preparing ligand PDBQT for SMILES: %s", smiles[:50])
-    ligand_pdbqt = _prepare_ligand_pdbqt_from_smiles(smiles)
+    # --- Resolve EVERY search parameter explicitly. Nothing is left to Vina's
+    #     built-in defaults: seed, exhaustiveness, cpu, and num_modes are all
+    #     passed on the command line and recorded in the job output below, so a
+    #     stored affinity can be reproduced from the job record alone. ---
+    seed = _docking_seed()
+    cpu = _docking_cpu()
+    num_modes = _docking_num_modes()
+    vina_version = resolved_vina_version()
+
+    logger.info("Preparing ligand PDBQT for SMILES: %s (seed=%d)", smiles[:50], seed)
+    ligand_pdbqt = _prepare_ligand_pdbqt_from_smiles(smiles, seed=seed)
 
     if await _is_cancelled(job_id, store):
         raise RuntimeError("Task cancelled by user")
@@ -150,7 +200,6 @@ async def run_docking_job(job_id: str, smiles: str, target: str, exhaustiveness:
 
         center = target_cfg["center"]
         box = target_cfg["box_size"]
-        n_poses = int(os.getenv("DOCKING_N_POSES", "5"))
 
         cmd = [
             str(VINA_BIN),
@@ -164,10 +213,15 @@ async def run_docking_job(job_id: str, smiles: str, target: str, exhaustiveness:
             "--size_y", str(box[1]),
             "--size_z", str(box[2]),
             "--exhaustiveness", str(exhaustiveness),
-            "--num_modes", str(n_poses),
+            "--num_modes", str(num_modes),
+            "--seed", str(seed),
+            "--cpu", str(cpu),
         ]
 
-        logger.info("Running Vina (exhaustiveness=%d): %s", exhaustiveness, " ".join(cmd))
+        logger.info(
+            "Running Vina (version=%s exhaustiveness=%d seed=%d cpu=%d num_modes=%d): %s",
+            vina_version, exhaustiveness, seed, cpu, num_modes, " ".join(cmd),
+        )
 
         proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
 
@@ -213,8 +267,9 @@ async def run_docking_job(job_id: str, smiles: str, target: str, exhaustiveness:
             raise RuntimeError("Vina did not produce output file")
 
         logger.info(
-            "Docking complete: affinity=%.2f kcal/mol, %d poses, exhaustiveness=%d",
-            best_affinity, len(vina_results), exhaustiveness,
+            "Docking complete: affinity=%.2f kcal/mol, %d poses, "
+            "exhaustiveness=%d seed=%d cpu=%d vina_version=%s",
+            best_affinity, len(vina_results), exhaustiveness, seed, cpu, vina_version,
         )
 
         return {
@@ -223,5 +278,13 @@ async def run_docking_job(job_id: str, smiles: str, target: str, exhaustiveness:
             "mode": "vina",
             "receptor_pdbqt": str(receptor_path.name),
             "all_poses": vina_results,
+            # --- Full provenance: everything needed to re-run this exact dock.
             "exhaustiveness": exhaustiveness,
+            "seed": seed,
+            "cpu": cpu,
+            "num_modes": num_modes,
+            "vina_version": vina_version,
+            "target": target,
+            "search_center": list(center),
+            "search_box_size": list(box),
         }

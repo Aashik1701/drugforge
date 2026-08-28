@@ -24,6 +24,7 @@ from datetime import datetime, timezone
 from jobs.models import JobStatus
 from jobs.store import JobStore
 from jobs.workers import docking_worker
+from utils.vina_env import probe_vina
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s")
 logger = logging.getLogger("local_worker")
@@ -77,6 +78,23 @@ async def main() -> None:
         "worker_started worker_id=%s max_concurrent=%d poll_interval_s=%s recovered_stale=%d",
         WORKER_ID, MAX_DOCKING_CONCURRENT, POLL_INTERVAL_SECONDS, recovered,
     )
+
+    # One-time Vina preflight. Informational only — the worker keeps polling
+    # even if Vina is missing/broken; each docking job then fails fast with a
+    # real error (docking_worker raises), never a fake success.
+    probe = probe_vina()
+    if probe.available:
+        logger.info(
+            "vina_preflight status=ok path=%s version=%s", probe.path, probe.version,
+        )
+    else:
+        logger.warning(
+            "vina_preflight status=unavailable path=%s error=%s", probe.path, probe.error,
+        )
+        logger.warning(
+            "vina_preflight docking jobs WILL FAIL until this is fixed "
+            "(worker still running; failure is per-job, not a crash)"
+        )
 
     semaphore = asyncio.Semaphore(MAX_DOCKING_CONCURRENT)
     in_flight: set[asyncio.Task] = set()

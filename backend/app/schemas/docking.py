@@ -76,3 +76,9 @@ class DockStatusResponse(BaseModel):
     finished_at: Optional[str] = None
     elapsed_seconds: Optional[float] = None
     error: Optional[str] = None
+    # Determinism provenance — everything needed to reproduce this affinity.
+    exhaustiveness: Optional[int] = None
+    seed: Optional[int] = None
+    cpu: Optional[int] = None
+    num_modes: Optional[int] = None
+    vina_version: Optional[str] = None

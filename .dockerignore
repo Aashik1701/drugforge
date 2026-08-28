@@ -1,0 +1,26 @@
+# Keep the build context small and the "clean container" claim honest.
+.git
+.DS_Store
+**/.DS_Store
+
+# Frontend / research / training data are not needed by the backend image.
+frontend
+ml
+research
+docs
+
+# Local-only / regenerated artifacts.
+**/venv
+**/.venv
+**/__pycache__
+**/*.pyc
+**/node_modules
+**/.pytest_cache
+**/.benchmarks
+**/*.db
+**/*.db-wal
+**/*.db-shm
+
+# The Vina binary must be acquired INSIDE the image by scripts/setup_vina.sh,
+# never copied from the host (host build may be the wrong OS/arch).
+backend/bin/vina

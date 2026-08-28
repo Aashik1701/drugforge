@@ -48,3 +48,10 @@ playwright-report/
 # rather than Supabase. -wal/-shm/-journal are SQLite's own auxiliary files.
 backend/app/jobs/jobs.db*
 /docs
+
+# AutoDock Vina binary — large third-party artifact with its own licence.
+# Acquired per-checkout by scripts/setup_vina.sh (pinned + SHA256-verified),
+# never committed. See scripts/README-vina.md.
+backend/bin/
+backend/bin/vina
+*.download
