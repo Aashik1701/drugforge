@@ -1,0 +1,36 @@
+# FastAPI & Web
+fastapi==0.141.1
+uvicorn[standard]==0.52.4
+pydantic==2.13.4
+
+# ML & Cheminformatics
+# NOTE: rdkit-pypi is deprecated (last release 2022.9.5) — rdkit is now the
+# officially published package. Import path (`from rdkit import ...`) is unchanged.
+rdkit==2026.3.5
+scikit-learn==1.9.0
+numpy==2.4.6
+joblib==1.5.3
+meeko==0.7.1
+gemmi==0.7.5  # meeko 0.7.1 imports this but doesn't declare it as a dependency (pip metadata bug)
+
+# Docking: AutoDock Vina is invoked as a native CLI binary via subprocess
+# (backend/bin/vina, see routers/dock.py) — the `vina` PyPI bindings are NOT
+# imported anywhere in this codebase and were removed. They also fail to
+# build from source on several platforms (Boost/C++ toolchain mismatches).
+
+# Security & Auth
+python-jose[cryptography]==3.3.0
+passlib[bcrypt]==1.7.4
+python-multipart==0.0.9
+
+# Environment
+python-dotenv==1.0.1
+
+# AI & LLM
+# google-generativeai is deprecated; google-genai is the current official SDK.
+google-genai==2.20.0
+
+# Testing
+pytest==9.1.1
+pytest-asyncio==1.4.0
+httpx==0.28.1

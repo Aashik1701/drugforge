@@ -1,0 +1,19 @@
+services:
+  - type: web
+    name: drugforge-api
+    runtime: python
+    region: oregon
+    rootDir: backend
+    buildCommand: pip install -r requirements.txt
+    startCommand: cd app && uvicorn main:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: ENVIRONMENT
+        value: production
+      - key: FRONTEND_URL
+        generateValue: false  # Set manually in Render dashboard
+      - key: JWT_SECRET_KEY
+        generateValue: true
+      - key: MODELS_PATH
+        value: ../models  # relative to app/, since startCommand runs from there
+      - key: PYTHON_VERSION
+        value: 3.11.0
