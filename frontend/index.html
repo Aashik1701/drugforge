@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.ico" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="DrugForge - AI-powered drug discovery platform for predicting pharmaceutical properties" />
+    <meta name="theme-color" content="#ffffff" />
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Roboto+Mono&display=swap" rel="stylesheet">
+    <title>DrugForge AI | Accelerating Drug Discovery</title>
+    <script>
+      // On page load, set the theme based on local storage or system preference
+      (function() {
+        const theme = localStorage.getItem('drugForgeState') ? 
+          JSON.parse(localStorage.getItem('drugForgeState')).theme : null;
+        
+        if (theme === 'dark' || (!theme && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+          document.documentElement.classList.add('dark');
+          document.querySelector('meta[name="theme-color"]').setAttribute('content', '#0f172a');
+        } else {
+          document.documentElement.classList.remove('dark');
+          document.querySelector('meta[name="theme-color"]').setAttribute('content', '#ffffff');
+        }
+      })();
+    </script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/index.jsx"></script>
+  </body>
+</html>
