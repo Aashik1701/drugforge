@@ -55,3 +55,8 @@ backend/app/jobs/jobs.db*
 backend/bin/
 backend/bin/vina
 *.download
+
+# Funnel eval: keep the committed reference artifacts (baseline_*.json,
+# funnel_*.json) but ignore scratch/smoke run records.
+runs/_*.json
+backend/app/funnel/**/*.db

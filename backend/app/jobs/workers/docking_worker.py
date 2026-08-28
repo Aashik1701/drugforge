@@ -154,12 +154,27 @@ async def _is_cancelled(job_id: str, store: JobStore) -> bool:
     return job is not None and job.status == JobStatus.CANCELLED
 
 
-async def run_docking_job(job_id: str, smiles: str, target: str, exhaustiveness: int, store: JobStore) -> dict[str, Any]:
+async def run_docking_job(
+    job_id: str,
+    smiles: str,
+    target: str,
+    exhaustiveness: int,
+    store: JobStore,
+    seed: Optional[int] = None,
+    conformer_seed: Optional[int] = None,
+) -> dict[str, Any]:
     """
     Execute real AutoDock Vina docking via CLI subprocess for job `job_id`.
     Same 3-step pipeline as the original _run_real_docking: prepare ligand,
     call vina, parse results. Raises on any failure — the caller (local_worker)
     is responsible for catching and marking the job failed.
+
+    `seed` overrides ONLY Vina's `--seed` (the Monte-Carlo search seed); when
+    None it falls back to DOCKING_SEED. `conformer_seed` overrides ONLY the
+    RDKit ETKDG embedding seed; when None it also falls back to DOCKING_SEED.
+    Splitting them lets a caller run several search replicas (varying `seed`)
+    against one fixed conformer — the design the funnel/baseline eval relies on
+    (see docs/development/local-worker.md). Both are recorded in the output.
     """
     if not VINA_BIN.exists():
         raise FileNotFoundError(
@@ -181,13 +196,17 @@ async def run_docking_job(job_id: str, smiles: str, target: str, exhaustiveness:
     #     built-in defaults: seed, exhaustiveness, cpu, and num_modes are all
     #     passed on the command line and recorded in the job output below, so a
     #     stored affinity can be reproduced from the job record alone. ---
-    seed = _docking_seed()
+    seed = _docking_seed() if seed is None else int(seed)
+    conformer_seed = seed if conformer_seed is None else int(conformer_seed)
     cpu = _docking_cpu()
     num_modes = _docking_num_modes()
     vina_version = resolved_vina_version()
 
-    logger.info("Preparing ligand PDBQT for SMILES: %s (seed=%d)", smiles[:50], seed)
-    ligand_pdbqt = _prepare_ligand_pdbqt_from_smiles(smiles, seed=seed)
+    logger.info(
+        "Preparing ligand PDBQT for SMILES: %s (conformer_seed=%d, vina_seed=%d)",
+        smiles[:50], conformer_seed, seed,
+    )
+    ligand_pdbqt = _prepare_ligand_pdbqt_from_smiles(smiles, seed=conformer_seed)
 
     if await _is_cancelled(job_id, store):
         raise RuntimeError("Task cancelled by user")
@@ -281,6 +300,7 @@ async def run_docking_job(job_id: str, smiles: str, target: str, exhaustiveness:
             # --- Full provenance: everything needed to re-run this exact dock.
             "exhaustiveness": exhaustiveness,
             "seed": seed,
+            "conformer_seed": conformer_seed,
             "cpu": cpu,
             "num_modes": num_modes,
             "vina_version": vina_version,

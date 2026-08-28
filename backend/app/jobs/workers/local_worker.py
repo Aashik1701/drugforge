@@ -45,6 +45,8 @@ async def _process_job(job, store: JobStore) -> None:
             target=job.input.get("target", ""),
             exhaustiveness=job.input.get("exhaustiveness") or 8,
             store=store,
+            seed=job.input.get("seed"),
+            conformer_seed=job.input.get("conformer_seed"),
         )
         current = await store.get_job(job.id)
         if current and current.status == JobStatus.CANCELLED:
