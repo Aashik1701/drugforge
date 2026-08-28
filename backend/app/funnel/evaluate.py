@@ -24,8 +24,17 @@ def _rank_of(rec: RunRecord) -> dict[str, int]:
 
 
 def _top_k_ligands(rec: RunRecord, k: int = TOP_K) -> list[str]:
-    """All ligands at rank <= k (tie groups can push the count past k)."""
+    """Ligands at rank <= k (strict — the headline denominator)."""
     return [e.ligand_id for e in rec.results if e.rank is not None and e.rank <= k]
+
+
+def _tie_straddle(rec: RunRecord, k: int = TOP_K) -> list[str]:
+    """Ligands at rank > k that share a tie_group with a rank <= k entry —
+    statistically indistinguishable from a top-k hit, reported alongside."""
+    top_groups = {e.tie_group for e in rec.results
+                  if e.tie_group and e.rank and e.rank <= k}
+    return [e.ligand_id for e in rec.results
+            if e.tie_group in top_groups and e.rank and e.rank > k]
 
 
 def _docked_ligands(rec: RunRecord) -> set[str]:
@@ -76,6 +85,7 @@ def compare(baseline: RunRecord, funnel: RunRecord) -> None:
     b_rank = _rank_of(baseline)
     f_rank = _rank_of(funnel)
     b_top = _top_k_ligands(baseline)
+    b_straddle = _tie_straddle(baseline)
     f_docked = _docked_ligands(funnel)
     b_docked = _docked_ligands(baseline)
     filtered_ids = {f.ligand_id: f for f in funnel.filtered_out}
@@ -87,6 +97,18 @@ def compare(baseline: RunRecord, funnel: RunRecord) -> None:
     selection_misses = [lid for lid in b_top if lid not in f_docked and lid not in filtered_ids]
 
     overlap = [lid for lid in b_top if lid in f_docked]
+
+    # tie-credited recall@5 — same metric funnel.sweep uses for policy selection,
+    # so the live result can be checked against the offline prediction.
+    tie_groups: dict[str, set] = {}
+    for e in baseline.results:
+        if e.tie_group:
+            tie_groups.setdefault(e.tie_group, set()).add(e.ligand_id)
+    def _partners(lid):
+        e = next((x for x in baseline.results if x.ligand_id == lid), None)
+        return (tie_groups.get(e.tie_group, set()) - {lid}) if (e and e.tie_group) else set()
+    recall5_hits = [m for m in b_top if m in f_docked or (_partners(m) & f_docked)]
+    recall5 = len(recall5_hits)
 
     common = sorted(f_docked & b_docked)
     sp_pairs = [(b_rank[l], f_rank[l]) for l in common if l in b_rank and l in f_rank]
@@ -129,8 +151,13 @@ def compare(baseline: RunRecord, funnel: RunRecord) -> None:
         sx = baseline.total_docking_wall_s / funnel.total_docking_wall_s
         print(f"    {'docking speedup (x)':<28} {'':>12} {sx:>12.1f}")
 
+    straddle_hit = [l for l in b_straddle if l in f_docked]
     print("\n--- agreement ---")
-    print(f"    top-5 overlap                : {len(overlap)} / {len(b_top)}   {overlap}")
+    print(f"    recall@5 (tie-credited)      : {recall5} / {len(b_top)}   hits={recall5_hits}")
+    print(f"    top-5 overlap (literal)      : {len(overlap)} / {len(b_top)}   {overlap}")
+    if b_straddle:
+        print(f"    (rank-6+ tied with a top-5   : {b_straddle} — funnel recovered "
+              f"{len(straddle_hit)} of these)")
     print(f"    funnel #1 == baseline #1     : {f1 == b1}   (baseline={b1}, funnel={f1})")
     if spearman is not None:
         print(f"    Spearman rho (commonly docked, n={len(sp_pairs)}) : {spearman:+.3f}")

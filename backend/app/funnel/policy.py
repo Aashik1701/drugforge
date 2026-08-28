@@ -6,11 +6,15 @@ dataclass. The funnel path (`funnel.funnel`) contains NO magic numbers of its
 own; it asks this object. An LLM planner replaces this object later and nothing
 else in the funnel changes.
 
-Nothing here is tuned to make the eval headline look good. Weights and cutoffs
-are set from ADMET domain conventions (Lipinski / Veber, permissive tox gates).
-The only data-derived quantity is min-max feature scaling of two continuous
-predictors, computed from the candidate set at runtime — that is feature
-normalisation, not threshold tuning, and it is logged in the run record.
+`ranker` selects the ranking formula and `filter_mode` selects which hard
+filters apply — so the offline sweep (funnel/sweep.py) can score many candidate
+policies by constructing FunnelPolicy variants, without touching funnel.funnel.
+
+Nothing here is tuned to make an eval headline look good. Thresholds come from
+ADMET domain conventions (Lipinski / Veber, permissive tox gates). Two
+continuous predictors get min-max feature scaling from the candidate set at
+runtime — feature normalisation, not threshold tuning, logged in the run record.
+Every change is recorded in funnel/CHANGELOG.md.
 """
 
 from __future__ import annotations
@@ -19,7 +23,6 @@ import math
 from dataclasses import dataclass, field
 from typing import Any
 
-
 # Order of the 10 descriptors returned by utils.rdkit_helper.extract_descriptors
 DESCRIPTOR_NAMES = [
     "MolWt", "MolLogP", "NumHDonors", "NumHAcceptors", "TPSA",
@@ -27,10 +30,20 @@ DESCRIPTOR_NAMES = [
     "RingCount", "FractionCSP3",
 ]
 
+RANKERS = {
+    "v1_multiobjective",   # w_cox2*P(cox2) + w_bind*binding_norm + w_sol*sol - w_tox*tox - w_cyp*cyp
+    "binding_only",        # rank on binding_norm alone
+    "descriptor_heuristic",  # rank on a drug-likeness descriptor-profile score (no ML)
+    "binding_desc_blend",  # 0.7*binding_norm + 0.3*descriptor score
+    "ligand_efficiency",   # binding_score per heavy atom
+    "binding_weak_cox2",   # binding_norm primary, P(cox2) as a light tiebreak
+}
+FILTER_MODES = {"druglike_and_tox", "tox_only", "none"}
+
 
 @dataclass(frozen=True)
 class HardFilters:
-    """A candidate failing ANY of these is dropped and never docked."""
+    """A candidate failing ANY active filter is dropped and never docked."""
 
     mw_max: float = 550.0
     logp_min: float = -1.0
@@ -39,45 +52,49 @@ class HardFilters:
     hba_max: int = 10
     tpsa_max: float = 150.0
     rotatable_max: int = 12
-    # Permissive toxicity gates: only drop the clearly-flagged.
     p_toxicity_max: float = 0.80   # hERG-based general toxicity model
     p_hepg2_max: float = 0.80      # hepatocyte toxicity model
 
 
 @dataclass(frozen=True)
 class RankWeights:
-    """Linear weights for the rank score (higher score = better candidate)."""
-
-    w_cox2_active: float = 1.00      # P(COX-2 active) — the on-target signal
-    w_binding: float = 1.00         # normalised binding-model desirability
-    w_solubility: float = 0.30      # mild preference for soluble molecules
+    w_cox2_active: float = 1.00
+    w_binding: float = 1.00
+    w_solubility: float = 0.30
     w_toxicity_penalty: float = 0.50
-    w_cyp3a4_penalty: float = 0.20  # DDI liability, mild
+    w_cyp3a4_penalty: float = 0.20
 
 
 @dataclass(frozen=True)
 class FunnelPolicy:
     top_n: int = 5
+    # v7 (pass 2): binding_norm primary + a light P(cox2) tiebreak. Adopted on
+    # secondary metrics only — recall@5 on cox2_v1 is UNCHANGED at 2/5 vs the
+    # original v1_multiobjective. See funnel/CHANGELOG.md "Sweep results".
+    ranker: str = "binding_weak_cox2"
+    filter_mode: str = "druglike_and_tox"
     hard: HardFilters = field(default_factory=HardFilters)
     weights: RankWeights = field(default_factory=RankWeights)
 
     # binding_score model (RandomForestRegressor). Despite the "kcal/mol" label
-    # on the endpoint, the model emits a POSITIVE pAffinity-style score
-    # (observed range ~4.4-7.1 on this set; the simulated fallback in
-    # routers/binding_score.py also uses uniform(5.0, 9.5)) where HIGHER =
-    # stronger binder — e.g. celecoxib 6.18, rofecoxib 6.12 vs aspirin 4.41,
-    # ethanol 4.88. So higher is better here. (This is the model's own scale,
-    # not Vina's; Vina's convention "more negative = better" still governs the
-    # docked affinities in funnel.ranking.) Set from the dry-run distribution
-    # before any docking was run — see funnel/CHANGELOG.md.
+    # on the endpoint it emits a POSITIVE pAffinity-style score (observed
+    # ~4.4-7.1 on cox2_v1; the simulated fallback in routers/binding_score.py
+    # uses uniform(5.0, 9.5)) where HIGHER = stronger binder. So higher is
+    # better. (Model's own scale, not Vina's.) See funnel/CHANGELOG.md.
     binding_lower_is_better: bool = False
 
-    # Solubility desirability: logS >= this is "fine"; below it, decays.
     solubility_logs_ok: float = -5.0
     solubility_decay: float = 1.5
 
+    # blend / tiebreak coefficients (used only by the rankers that name them)
+    blend_binding: float = 0.70
+    blend_descriptor: float = 0.30
+    weak_cox2_coeff: float = 0.15
+
     # ------------------------------------------------------------------
-    def descriptors_pass(self, desc: dict[str, float]) -> tuple[bool, str]:
+    # Hard filters
+    # ------------------------------------------------------------------
+    def _druglike_ok(self, desc: dict[str, float]) -> tuple[bool, str]:
         h = self.hard
         checks = [
             (desc["MolWt"] <= h.mw_max, f"MolWt {desc['MolWt']:.0f} > {h.mw_max:.0f}"),
@@ -94,7 +111,14 @@ class FunnelPolicy:
                 return False, msg
         return True, ""
 
+    def descriptors_pass(self, desc: dict[str, float]) -> tuple[bool, str]:
+        if self.filter_mode in ("tox_only", "none"):
+            return True, ""
+        return self._druglike_ok(desc)
+
     def tox_pass(self, preds: dict[str, float]) -> tuple[bool, str]:
+        if self.filter_mode == "none":
+            return True, ""
         h = self.hard
         if preds["toxicity"] > h.p_toxicity_max:
             return False, f"P(toxic) {preds['toxicity']:.2f} > {h.p_toxicity_max}"
@@ -103,16 +127,59 @@ class FunnelPolicy:
         return True, ""
 
     # ------------------------------------------------------------------
+    # Sub-scores
+    # ------------------------------------------------------------------
     def _solubility_desirability(self, logs: float) -> float:
         if logs >= self.solubility_logs_ok:
             return 1.0
         return math.exp((logs - self.solubility_logs_ok) / self.solubility_decay)
 
-    def rank_score(
-        self,
-        preds: dict[str, float],
-        binding_norm: float,   # 0..1, already normalised + direction-corrected (1 = best)
-    ) -> float:
+    @staticmethod
+    def _gauss(x: float, mu: float, sigma: float) -> float:
+        return math.exp(-0.5 * ((x - mu) / sigma) ** 2)
+
+    def descriptor_desirability(self, desc: dict[str, float]) -> float:
+        """
+        0..1 "looks like a small-molecule enzyme inhibitor" score from cheap
+        physicochemistry only — no ML. Peaks at MW~370, LogP~3, low TPSA, few
+        rotatable bonds, 2-3 aromatic rings. Used by descriptor_heuristic /
+        binding_desc_blend.
+        """
+        mw = self._gauss(desc["MolWt"], 370.0, 90.0)
+        logp = self._gauss(desc["MolLogP"], 3.0, 1.8)
+        tpsa = 1.0 if desc["TPSA"] <= 90 else math.exp((90 - desc["TPSA"]) / 50.0)
+        rotb = 1.0 if desc["NumRotatableBonds"] <= 5 else math.exp((5 - desc["NumRotatableBonds"]) / 4.0)
+        arom = self._gauss(desc["NumAromaticRings"], 2.5, 1.0)
+        return (mw * logp * tpsa * rotb * arom) ** 0.2  # geometric mean of 5 terms
+
+    # ------------------------------------------------------------------
+    # The ranking function (dispatches on self.ranker). Higher = better.
+    # `feat` = {"predictions": {...}, "descriptors": {...}, "heavy_atoms": int}
+    # `binding_norm` = 0..1, direction-corrected (1 = strongest predicted binder)
+    # ------------------------------------------------------------------
+    def rank_score(self, feat: dict[str, Any], binding_norm: float) -> float:
+        preds = feat["predictions"]
+        desc = feat["descriptors"]
+        r = self.ranker
+
+        if r == "binding_only":
+            return binding_norm
+
+        if r == "descriptor_heuristic":
+            return self.descriptor_desirability(desc)
+
+        if r == "binding_desc_blend":
+            return (self.blend_binding * binding_norm
+                    + self.blend_descriptor * self.descriptor_desirability(desc))
+
+        if r == "ligand_efficiency":
+            ha = max(1, int(feat.get("heavy_atoms", 1)))
+            return preds["binding_score"] / ha
+
+        if r == "binding_weak_cox2":
+            return binding_norm + self.weak_cox2_coeff * preds["cox2"]
+
+        # default: v1_multiobjective
         w = self.weights
         return (
             w.w_cox2_active * preds["cox2"]

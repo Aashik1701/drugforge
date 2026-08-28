@@ -34,7 +34,7 @@ os.environ.setdefault("COMPUTE_MODE", "balanced")
 
 from funnel.candidate_set import load_candidate_set
 from funnel.fabric import (
-    dock_candidate, descriptors_fabric, local_worker_process,
+    call_local, dock_candidate, descriptors_fabric, local_worker_process,
     predict_all_fabric, validate_smiles_fabric,
 )
 from funnel.policy import DEFAULT_POLICY, FunnelPolicy
@@ -84,9 +84,15 @@ async def screen(candidates, policy: FunnelPolicy):
     for c in passed_desc:
         preds = await predict_all_fabric(c.smiles)
         per_candidate[c.ligand_id]["predictions"] = {k: round(v, 4) for k, v in preds.items()}
+        mol = await call_local("parse_smiles", c.smiles)
+        feat = {
+            "predictions": preds,
+            "descriptors": per_candidate[c.ligand_id]["descriptors"],
+            "heavy_atoms": int(mol.GetNumHeavyAtoms()),
+        }
         ok, reason = policy.tox_pass(preds)
         if ok:
-            passed_tox.append((c, preds))
+            passed_tox.append((c, feat))
         else:
             filtered.append(FilteredOut(c.ligand_id, c.smiles, "toxicity", reason))
             per_candidate[c.ligand_id]["drop_reason"] = f"toxicity: {reason}"
@@ -97,8 +103,11 @@ async def screen(candidates, policy: FunnelPolicy):
 
 
 def score_and_select(passed_tox, policy: FunnelPolicy, per_candidate: dict):
-    """Multi-objective rank over survivors; return (ranked_list, top_n, binding_norm_meta)."""
-    binding_vals = [p["binding_score"] for _, p in passed_tox]
+    """Rank over survivors via policy.rank_score; return (ranked_list, top_n, meta).
+
+    `passed_tox` items are (candidate, feat) with feat = {predictions, descriptors,
+    heavy_atoms}. `scored` items are (candidate, feat, score)."""
+    binding_vals = [f["predictions"]["binding_score"] for _, f in passed_tox]
     if binding_vals:
         b_min, b_max = min(binding_vals), max(binding_vals)
     else:
@@ -110,11 +119,12 @@ def score_and_select(passed_tox, policy: FunnelPolicy, per_candidate: dict):
         return (1.0 - frac) if policy.binding_lower_is_better else frac
 
     scored = []
-    for c, preds in passed_tox:
-        s = policy.rank_score(preds, bnorm(preds["binding_score"]))
-        per_candidate[c.ligand_id]["binding_norm"] = round(bnorm(preds["binding_score"]), 4)
+    for c, feat in passed_tox:
+        bn = bnorm(feat["predictions"]["binding_score"])
+        s = policy.rank_score(feat, bn)
+        per_candidate[c.ligand_id]["binding_norm"] = round(bn, 4)
         per_candidate[c.ligand_id]["rank_score"] = round(s, 4)
-        scored.append((c, preds, s))
+        scored.append((c, feat, s))
     scored.sort(key=lambda t: t[2], reverse=True)  # higher score = better
     for i, (c, _, _) in enumerate(scored, 1):
         per_candidate[c.ligand_id]["prescreen_rank"] = i
@@ -122,7 +132,8 @@ def score_and_select(passed_tox, policy: FunnelPolicy, per_candidate: dict):
     for c, _, _ in top:
         per_candidate[c.ligand_id]["selected_for_docking"] = True
     meta = {"binding_min": b_min, "binding_max": b_max,
-            "binding_lower_is_better": policy.binding_lower_is_better}
+            "binding_lower_is_better": policy.binding_lower_is_better,
+            "ranker": policy.ranker, "filter_mode": policy.filter_mode}
     return scored, top, meta
 
 
@@ -161,10 +172,15 @@ def main() -> int:
     print(f"funnel run_id={run_id}  set={cs.set_id} ({len(cs)} candidates, "
           f"sha={cs.content_sha256[:12]})  top_n={policy.top_n}", flush=True)
 
+    # Per-run private job store. MUST be set before the first get_fabric_async()
+    # (which builds main.job_store from this env var) so the parent and the
+    # LocalWorker subprocess agree on which SQLite file the docking jobs live in.
+    job_db = f"/tmp/funnel_{run_id}.db"
+    os.environ["JOB_STORE_PATH"] = job_db
+
     from utils.vina_env import resolved_vina_version
 
     t0 = time.perf_counter()
-    job_db = f"/tmp/funnel_{run_id}.db"
 
     async def _local_phase():
         passed_tox, filtered, per_candidate, stages = await screen(cs.candidates, policy)
@@ -174,7 +190,8 @@ def main() -> int:
     passed_tox, filtered, per_candidate, stages, scored, top, bmeta = asyncio.run(_local_phase())
 
     print("\n--- prescreen ranking (survivors, by rank_score desc) ---", flush=True)
-    for c, preds, s in scored:
+    for c, feat, s in scored:
+        preds = feat["predictions"]
         mark = "  <== dock" if any(cc.ligand_id == c.ligand_id for cc, _, _ in top) else ""
         print(f"  score={s:+.3f}  cox2={preds['cox2']:.2f} bind={preds['binding_score']:+.2f} "
               f"tox={preds['toxicity']:.2f} sol={preds['solubility']:+.2f}  {c.ligand_id} "

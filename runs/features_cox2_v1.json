@@ -1,0 +1,1177 @@
+{
+  "set_id": "cox2_v1",
+  "candidate_set_sha256": "9ae649ec19fe9a206e8bdbd3a2b43609e89623f8d713a511d05c0bd33c7d35af",
+  "n": 45,
+  "features": {
+    "CHEMBL112": {
+      "descriptors": {
+        "MolWt": 151.165,
+        "MolLogP": 1.3506,
+        "NumHDonors": 2.0,
+        "NumHAcceptors": 2.0,
+        "TPSA": 49.33,
+        "NumRotatableBonds": 1.0,
+        "NumAromaticRings": 1.0,
+        "NumSaturatedRings": 0.0,
+        "RingCount": 1.0,
+        "FractionCSP3": 0.125
+      },
+      "predictions": {
+        "solubility": -1.3443,
+        "bbbp": 0.9733,
+        "cyp3a4": 0.0467,
+        "toxicity": 0.02,
+        "cox2": 0.0352,
+        "hepg2": 0.3285,
+        "ace2": 0.1083,
+        "half_life": 2.4771,
+        "binding_score": 4.684
+      },
+      "heavy_atoms": 11
+    },
+    "CHEMBL113": {
+      "descriptors": {
+        "MolWt": 194.194,
+        "MolLogP": -1.0293,
+        "NumHDonors": 0.0,
+        "NumHAcceptors": 3.0,
+        "TPSA": 61.82,
+        "NumRotatableBonds": 0.0,
+        "NumAromaticRings": 2.0,
+        "NumSaturatedRings": 0.0,
+        "RingCount": 2.0,
+        "FractionCSP3": 0.375
+      },
+      "predictions": {
+        "solubility": -1.0881,
+        "bbbp": 0.94,
+        "cyp3a4": 0.0133,
+        "toxicity": 0.1533,
+        "cox2": 0.2716,
+        "hepg2": 0.0485,
+        "ace2": 0.0646,
+        "half_life": 6.0749,
+        "binding_score": 4.4771
+      },
+      "heavy_atoms": 14
+    },
+    "CHEMBL118": {
+      "descriptors": {
+        "MolWt": 381.379,
+        "MolLogP": 3.5139,
+        "NumHDonors": 1.0,
+        "NumHAcceptors": 3.0,
+        "TPSA": 77.98,
+        "NumRotatableBonds": 3.0,
+        "NumAromaticRings": 3.0,
+        "NumSaturatedRings": 0.0,
+        "RingCount": 3.0,
+        "FractionCSP3": 0.1176
+      },
+      "predictions": {
+        "solubility": -4.3372,
+        "bbbp": 0.8,
+        "cyp3a4": 0.2933,
+        "toxicity": 0.3133,
+        "cox2": 0.7862,
+        "hepg2": 0.1968,
+        "ace2": 0.06,
+        "half_life": 8.7807,
+        "binding_score": 6.1824
+      },
+      "heavy_atoms": 26
+    },
+    "CHEMBL122": {
+      "descriptors": {
+        "MolWt": 314.362,
+        "MolLogP": 2.5577,
+        "NumHDonors": 0.0,
+        "NumHAcceptors": 4.0,
+        "TPSA": 60.44,
+        "NumRotatableBonds": 3.0,
+        "NumAromaticRings": 2.0,
+        "NumSaturatedRings": 0.0,
+        "RingCount": 3.0,
+        "FractionCSP3": 0.1176
+      },
+      "predictions": {
+        "solubility": -4.613,
+        "bbbp": 0.8067,
+        "cyp3a4": 0.24,
+        "toxicity": 0.02,
+        "cox2": 0.7735,
+        "hepg2": 0.1692,
+        "ace2": 0.12,
+        "half_life": 7.2921,
+        "binding_score": 6.1204
+      },
+      "heavy_atoms": 22
+    },
+    "CHEMBL12952": {
+      "descriptors": {
+        "MolWt": 230.263,
+        "MolLogP": 3.0365,
+        "NumHDonors": 1.0,
+        "NumHAcceptors": 2.0,
+        "TPSA": 46.53,
+        "NumRotatableBonds": 3.0,
+        "NumAromaticRings": 2.0,
+        "NumSaturatedRings": 0.0,
+        "RingCount": 2.0,
+        "FractionCSP3": 0.2143
+      },
+      "predictions": {
+        "solubility": -3.8436,
+        "bbbp": 0.7178,
+        "cyp3a4": 0.16,
+        "toxicity": 0.1467,
+        "cox2": 0.1137,
+        "hepg2": 0.07,
+        "ace2": 0.1083,
+        "half_life": 4.2329,
+        "binding_score": 5.2356
+      },
+      "heavy_atoms": 17
+    },
+    "CHEMBL139": {
+      "descriptors": {
+        "MolWt": 296.153,
+        "MolLogP": 4.3641,
+        "NumHDonors": 2.0,
+        "NumHAcceptors": 2.0,
+        "TPSA": 49.33,
+        "NumRotatableBonds": 4.0,
+        "NumAromaticRings": 2.0,
+        "NumSaturatedRings": 0.0,
+        "RingCount": 2.0,
+        "FractionCSP3": 0.0714
+      },
+      "predictions": {
+        "solubility": -4.0762,
+        "bbbp": 0.71,
+        "cyp3a4": 0.1556,
+        "toxicity": 0.18,
+        "cox2": 0.5471,
+        "hepg2": 0.1239,
+        "ace2": 0.1153,
+        "half_life": 2.7369,
+        "binding_score": 5.0869
+      },
+      "heavy_atoms": 19
+    },
+    "CHEMBL25": {
+      "descriptors": {
+        "MolWt": 180.159,
+        "MolLogP": 1.3101,
+        "NumHDonors": 1.0,
+        "NumHAcceptors": 3.0,
+        "TPSA": 63.6,
+        "NumRotatableBonds": 2.0,
+        "NumAromaticRings": 1.0,
+        "NumSaturatedRings": 0.0,
+        "RingCount": 1.0,
+        "FractionCSP3": 0.1111
+      },
+      "predictions": {
+        "solubility": -1.8381,
+        "bbbp": 0.3133,
+        "cyp3a4": 0.0133,
+        "toxicity": 0.08,
+        "cox2": 0.0,
+        "hepg2": 0.0722,
+        "ace2": 0.095,
+        "half_life": 2.8939,
+        "binding_score": 4.4068
+      },
+      "heavy_atoms": 13
+    },
+    "CHEMBL521": {
+      "descriptors": {
+        "MolWt": 206.285,
+        "MolLogP": 3.0732,
+        "NumHDonors": 1.0,
+        "NumHAcceptors": 1.0,
+        "TPSA": 37.3,
+        "NumRotatableBonds": 4.0,
+        "NumAromaticRings": 1.0,
+        "NumSaturatedRings": 0.0,
+        "RingCount": 1.0,
+        "FractionCSP3": 0.4615
+      },
+      "predictions": {
+        "solubility": -2.2552,
+        "bbbp": 0.2933,
+        "cyp3a4": 0.0933,
+        "toxicity": 0.0333,
+        "cox2": 0.0,
+        "hepg2": 0.1064,
+        "ace2": 0.1875,
+        "half_life": 3.1442,
+        "binding_score": 5.2059
+      },
+      "heavy_atoms": 15
+    },
+    "CHEMBL599": {
+      "descriptors": {
+        "MolWt": 351.409,
+        "MolLogP": 1.9509,
+        "NumHDonors": 2.0,
+        "NumHAcceptors": 6.0,
+        "TPSA": 99.6,
+        "NumRotatableBonds": 2.0,
+        "NumAromaticRings": 2.0,
+        "NumSaturatedRings": 0.0,
+        "RingCount": 3.0,
+        "FractionCSP3": 0.1429
+      },
+      "predictions": {
+        "solubility": -3.6496,
+        "bbbp": 0.6333,
+        "cyp3a4": 0.34,
+        "toxicity": 0.2778,
+        "cox2": 0.5005,
+        "hepg2": 0.7318,
+        "ace2": 0.1333,
+        "half_life": 24.6056,
+        "binding_score": 5.4933
+      },
+      "heavy_atoms": 23
+    },
+    "CHEMBL6": {
+      "descriptors": {
+        "MolWt": 357.793,
+        "MolLogP": 3.9273,
+        "NumHDonors": 1.0,
+        "NumHAcceptors": 3.0,
+        "TPSA": 68.53,
+        "NumRotatableBonds": 4.0,
+        "NumAromaticRings": 3.0,
+        "NumSaturatedRings": 0.0,
+        "RingCount": 3.0,
+        "FractionCSP3": 0.1579
+      },
+      "predictions": {
+        "solubility": -4.5384,
+        "bbbp": 0.5023,
+        "cyp3a4": 0.1933,
+        "toxicity": 0.0533,
+        "cox2": 0.3868,
+        "hepg2": 0.073,
+        "ace2": 0.0903,
+        "half_life": 5.0688,
+        "binding_score": 5.1158
+      },
+      "heavy_atoms": 25
+    },
+    "REF_ethanol": {
+      "descriptors": {
+        "MolWt": 46.069,
+        "MolLogP": -0.0014,
+        "NumHDonors": 1.0,
+        "NumHAcceptors": 1.0,
+        "TPSA": 20.23,
+        "NumRotatableBonds": 0.0,
+        "NumAromaticRings": 0.0,
+        "NumSaturatedRings": 0.0,
+        "RingCount": 0.0,
+        "FractionCSP3": 1.0
+      },
+      "predictions": {
+        "solubility": 1.1378,
+        "bbbp": 1.0,
+        "cyp3a4": 0.0,
+        "toxicity": 0.0933,
+        "cox2": 0.0294,
+        "hepg2": 0.0221,
+        "ace2": 0.045,
+        "half_life": 2.3138,
+        "binding_score": 4.8835
+      },
+      "heavy_atoms": 3
+    },
+    "CHEMBL111518": {
+      "descriptors": {
+        "MolWt": 411.361,
+        "MolLogP": 2.9342,
+        "NumHDonors": 1.0,
+        "NumHAcceptors": 5.0,
+        "TPSA": 96.44,
+        "NumRotatableBonds": 3.0,
+        "NumAromaticRings": 3.0,
+        "NumSaturatedRings": 0.0,
+        "RingCount": 4.0,
+        "FractionCSP3": 0.1176
+      },
+      "predictions": {
+        "solubility": -3.4067,
+        "bbbp": 0.84,
+        "cyp3a4": 0.7,
+        "toxicity": 0.3133,
+        "cox2": 0.9637,
+        "hepg2": 0.2405,
+        "ace2": 0.0742,
+        "half_life": 8.7919,
+        "binding_score": 6.7389
+      },
+      "heavy_atoms": 28
+    },
+    "CHEMBL111786": {
+      "descriptors": {
+        "MolWt": 351.83,
+        "MolLogP": 4.2212,
+        "NumHDonors": 1.0,
+        "NumHAcceptors": 2.0,
+        "TPSA": 60.16,
+        "NumRotatableBonds": 3.0,
+        "NumAromaticRings": 2.0,
+        "NumSaturatedRings": 0.0,
+        "RingCount": 3.0,
+        "FractionCSP3": 0.1765
+      },
+      "predictions": {
+        "solubility": -5.9708,
+        "bbbp": 0.856,
+        "cyp3a4": 0.2133,
+        "toxicity": 0.3867,
+        "cox2": 0.9899,
+        "hepg2": 0.2836,
+        "ace2": 0.07,
+        "half_life": 19.6197,
+        "binding_score": 6.2627
+      },
+      "heavy_atoms": 23
+    },
+    "CHEMBL116253": {
+      "descriptors": {
+        "MolWt": 347.827,
+        "MolLogP": 3.2996,
+        "NumHDonors": 0.0,
+        "NumHAcceptors": 4.0,
+        "TPSA": 64.85,
+        "NumRotatableBonds": 3.0,
+        "NumAromaticRings": 3.0,
+        "NumSaturatedRings": 0.0,
+        "RingCount": 3.0,
+        "FractionCSP3": 0.125
+      },
+      "predictions": {
+        "solubility": -2.6177,
+        "bbbp": 0.7267,
+        "cyp3a4": 0.5267,
+        "toxicity": 0.4867,
+        "cox2": 0.6967,
+        "hepg2": 0.1675,
+        "ace2": 0.1633,
+        "half_life": 17.6514,
+        "binding_score": 5.1465
+      },
+      "heavy_atoms": 23
+    },
+    "CHEMBL118064": {
+      "descriptors": {
+        "MolWt": 333.8,
+        "MolLogP": 2.8401,
+        "NumHDonors": 1.0,
+        "NumHAcceptors": 3.0,
+        "TPSA": 77.98,
+        "NumRotatableBonds": 3.0,
+        "NumAromaticRings": 3.0,
+        "NumSaturatedRings": 0.0,
+        "RingCount": 3.0,
+        "FractionCSP3": 0.0
+      },
+      "predictions": {
+        "solubility": -3.5126,
+        "bbbp": 0.8667,
+        "cyp3a4": 0.2467,
+        "toxicity": 0.3533,
+        "cox2": 0.931,
+        "hepg2": 0.1334,
+        "ace2": 0.1133,
+        "half_life": 7.4765,
+        "binding_score": 6.1985
+      },
+      "heavy_atoms": 22
+    },
+    "CHEMBL119170": {
+      "descriptors": {
+        "MolWt": 287.403,
+        "MolLogP": 3.5463,
+        "NumHDonors": 1.0,
+        "NumHAcceptors": 2.0,
+        "TPSA": 38.33,
+        "NumRotatableBonds": 2.0,
+        "NumAromaticRings": 1.0,
+        "NumSaturatedRings": 1.0,
+        "RingCount": 3.0,
+        "FractionCSP3": 0.6111
+      },
+      "predictions": {
+        "solubility": -4.921,
+        "bbbp": 0.7067,
+        "cyp3a4": 0.22,
+        "toxicity": 0.2867,
+        "cox2": 0.6948,
+        "hepg2": 0.3589,
+        "ace2": 0.1083,
+        "half_life": 7.8596,
+        "binding_score": 6.5698
+      },
+      "heavy_atoms": 21
+    },
+    "CHEMBL149781": {
+      "descriptors": {
+        "MolWt": 452.458,
+        "MolLogP": 3.15,
+        "NumHDonors": 2.0,
+        "NumHAcceptors": 4.0,
+        "TPSA": 107.08,
+        "NumRotatableBonds": 5.0,
+        "NumAromaticRings": 3.0,
+        "NumSaturatedRings": 0.0,
+        "RingCount": 3.0,
+        "FractionCSP3": 0.2
+      },
+      "predictions": {
+        "solubility": -4.0906,
+        "bbbp": 0.6867,
+        "cyp3a4": 0.4133,
+        "toxicity": 0.2933,
+        "cox2": 0.1272,
+        "hepg2": 0.2394,
+        "ace2": 0.1083,
+        "half_life": 9.4053,
+        "binding_score": 6.741
+      },
+      "heavy_atoms": 31
+    },
+    "CHEMBL16881": {
+      "descriptors": {
+        "MolWt": 320.458,
+        "MolLogP": 4.5143,
+        "NumHDonors": 1.0,
+        "NumHAcceptors": 5.0,
+        "TPSA": 55.24,
+        "NumRotatableBonds": 2.0,
+        "NumAromaticRings": 2.0,
+        "NumSaturatedRings": 0.0,
+        "RingCount": 2.0,
+        "FractionCSP3": 0.5294
+      },
+      "predictions": {
+        "solubility": -4.769,
+        "bbbp": 0.76,
+        "cyp3a4": 0.22,
+        "toxicity": 0.18,
+        "cox2": 0.0815,
+        "hepg2": 0.6724,
+        "ace2": 0.035,
+        "half_life": 4.7847,
+        "binding_score": 5.3087
+      },
+      "heavy_atoms": 22
+    },
+    "CHEMBL184613": {
+      "descriptors": {
+        "MolWt": 363.442,
+        "MolLogP": 3.7752,
+        "NumHDonors": 0.0,
+        "NumHAcceptors": 4.0,
+        "TPSA": 64.33,
+        "NumRotatableBonds": 3.0,
+        "NumAromaticRings": 4.0,
+        "NumSaturatedRings": 0.0,
+        "RingCount": 4.0,
+        "FractionCSP3": 0.1
+      },
+      "predictions": {
+        "solubility": -4.1124,
+        "bbbp": 0.7467,
+        "cyp3a4": 0.4133,
+        "toxicity": 0.4267,
+        "cox2": 0.6881,
+        "hepg2": 0.2304,
+        "ace2": 0.1233,
+        "half_life": 24.9139,
+        "binding_score": 5.172
+      },
+      "heavy_atoms": 26
+    },
+    "CHEMBL1909073": {
+      "descriptors": {
+        "MolWt": 368.497,
+        "MolLogP": 3.4863,
+        "NumHDonors": 1.0,
+        "NumHAcceptors": 3.0,
+        "TPSA": 46.53,
+        "NumRotatableBonds": 7.0,
+        "NumAromaticRings": 2.0,
+        "NumSaturatedRings": 1.0,
+        "RingCount": 3.0,
+        "FractionCSP3": 0.4348
+      },
+      "predictions": {
+        "solubility": -3.2428,
+        "bbbp": 0.9067,
+        "cyp3a4": 0.1533,
+        "toxicity": 0.3333,
+        "cox2": 0.2077,
+        "hepg2": 0.0776,
+        "ace2": 0.1253,
+        "half_life": 11.8669,
+        "binding_score": 6.2577
+      },
+      "heavy_atoms": 27
+    },
+    "CHEMBL1956384": {
+      "descriptors": {
+        "MolWt": 319.321,
+        "MolLogP": 1.1158,
+        "NumHDonors": 1.0,
+        "NumHAcceptors": 5.0,
+        "TPSA": 103.76,
+        "NumRotatableBonds": 3.0,
+        "NumAromaticRings": 3.0,
+        "NumSaturatedRings": 0.0,
+        "RingCount": 3.0,
+        "FractionCSP3": 0.0
+      },
+      "predictions": {
+        "solubility": -3.0973,
+        "bbbp": 0.82,
+        "cyp3a4": 0.2867,
+        "toxicity": 0.3067,
+        "cox2": 0.1678,
+        "hepg2": 0.1027,
+        "ace2": 0.0608,
+        "half_life": 5.5691,
+        "binding_score": 6.3202
+      },
+      "heavy_atoms": 22
+    },
+    "CHEMBL203266": {
+      "descriptors": {
+        "MolWt": 266.341,
+        "MolLogP": 1.1176,
+        "NumHDonors": 1.0,
+        "NumHAcceptors": 5.0,
+        "TPSA": 42.96,
+        "NumRotatableBonds": 5.0,
+        "NumAromaticRings": 1.0,
+        "NumSaturatedRings": 1.0,
+        "RingCount": 2.0,
+        "FractionCSP3": 0.5714
+      },
+      "predictions": {
+        "solubility": -2.9934,
+        "bbbp": 0.9433,
+        "cyp3a4": 0.2133,
+        "toxicity": 0.5844,
+        "cox2": 0.2975,
+        "hepg2": 0.0855,
+        "ace2": 0.0875,
+        "half_life": 4.7617,
+        "binding_score": 6.3073
+      },
+      "heavy_atoms": 19
+    },
+    "CHEMBL2315019": {
+      "descriptors": {
+        "MolWt": 407.469,
+        "MolLogP": 5.7604,
+        "NumHDonors": 0.0,
+        "NumHAcceptors": 3.0,
+        "TPSA": 48.3,
+        "NumRotatableBonds": 3.0,
+        "NumAromaticRings": 5.0,
+        "NumSaturatedRings": 0.0,
+        "RingCount": 5.0,
+        "FractionCSP3": 0.1111
+      },
+      "predictions": {
+        "solubility": -4.6294,
+        "bbbp": 0.7244,
+        "cyp3a4": 0.52,
+        "toxicity": 0.3067,
+        "cox2": 0.0523,
+        "hepg2": 0.1661,
+        "ace2": 0.1258,
+        "half_life": 9.185,
+        "binding_score": 5.3462
+      },
+      "heavy_atoms": 31
+    },
+    "CHEMBL2347673": {
+      "descriptors": {
+        "MolWt": 392.933,
+        "MolLogP": 4.9126,
+        "NumHDonors": 1.0,
+        "NumHAcceptors": 4.0,
+        "TPSA": 62.82,
+        "NumRotatableBonds": 5.0,
+        "NumAromaticRings": 3.0,
+        "NumSaturatedRings": 0.0,
+        "RingCount": 3.0,
+        "FractionCSP3": 0.1667
+      },
+      "predictions": {
+        "solubility": -4.4712,
+        "bbbp": 0.8667,
+        "cyp3a4": 0.22,
+        "toxicity": 0.56,
+        "cox2": 0.9557,
+        "hepg2": 0.1341,
+        "ace2": 0.0908,
+        "half_life": 31.2734,
+        "binding_score": 5.7497
+      },
+      "heavy_atoms": 25
+    },
+    "CHEMBL260553": {
+      "descriptors": {
+        "MolWt": 396.439,
+        "MolLogP": 4.786,
+        "NumHDonors": 4.0,
+        "NumHAcceptors": 6.0,
+        "TPSA": 111.13,
+        "NumRotatableBonds": 4.0,
+        "NumAromaticRings": 3.0,
+        "NumSaturatedRings": 0.0,
+        "RingCount": 3.0,
+        "FractionCSP3": 0.2609
+      },
+      "predictions": {
+        "solubility": -2.9941,
+        "bbbp": 0.6883,
+        "cyp3a4": 0.12,
+        "toxicity": 0.2533,
+        "cox2": 0.0479,
+        "hepg2": 0.4244,
+        "ace2": 0.0592,
+        "half_life": 11.0621,
+        "binding_score": 5.5254
+      },
+      "heavy_atoms": 29
+    },
+    "CHEMBL283178": {
+      "descriptors": {
+        "MolWt": 413.446,
+        "MolLogP": 3.9274,
+        "NumHDonors": 1.0,
+        "NumHAcceptors": 4.0,
+        "TPSA": 77.98,
+        "NumRotatableBonds": 4.0,
+        "NumAromaticRings": 3.0,
+        "NumSaturatedRings": 0.0,
+        "RingCount": 3.0,
+        "FractionCSP3": 0.1176
+      },
+      "predictions": {
+        "solubility": -4.2889,
+        "bbbp": 0.7867,
+        "cyp3a4": 0.3667,
+        "toxicity": 0.3533,
+        "cox2": 0.9728,
+        "hepg2": 0.2261,
+        "ace2": 0.14,
+        "half_life": 10.1311,
+        "binding_score": 6.3649
+      },
+      "heavy_atoms": 27
+    },
+    "CHEMBL284914": {
+      "descriptors": {
+        "MolWt": 357.162,
+        "MolLogP": 5.8649,
+        "NumHDonors": 0.0,
+        "NumHAcceptors": 1.0,
+        "TPSA": 17.82,
+        "NumRotatableBonds": 2.0,
+        "NumAromaticRings": 3.0,
+        "NumSaturatedRings": 0.0,
+        "RingCount": 3.0,
+        "FractionCSP3": 0.0625
+      },
+      "predictions": {
+        "solubility": -4.9026,
+        "bbbp": 0.8467,
+        "cyp3a4": 0.2533,
+        "toxicity": 0.5267,
+        "cox2": 0.0662,
+        "hepg2": 0.2284,
+        "ace2": 0.0833,
+        "half_life": 27.5824,
+        "binding_score": 5.5677
+      },
+      "heavy_atoms": 23
+    },
+    "CHEMBL322132": {
+      "descriptors": {
+        "MolWt": 376.405,
+        "MolLogP": 3.3547,
+        "NumHDonors": 0.0,
+        "NumHAcceptors": 5.0,
+        "TPSA": 69.67,
+        "NumRotatableBonds": 4.0,
+        "NumAromaticRings": 2.0,
+        "NumSaturatedRings": 0.0,
+        "RingCount": 3.0,
+        "FractionCSP3": 0.2105
+      },
+      "predictions": {
+        "solubility": -4.4095,
+        "bbbp": 0.76,
+        "cyp3a4": 0.2667,
+        "toxicity": 0.3467,
+        "cox2": 0.9803,
+        "hepg2": 0.1938,
+        "ace2": 0.0542,
+        "half_life": 18.1554,
+        "binding_score": 5.1772
+      },
+      "heavy_atoms": 26
+    },
+    "CHEMBL32749": {
+      "descriptors": {
+        "MolWt": 194.186,
+        "MolLogP": 1.4986,
+        "NumHDonors": 2.0,
+        "NumHAcceptors": 3.0,
+        "TPSA": 66.76,
+        "NumRotatableBonds": 3.0,
+        "NumAromaticRings": 1.0,
+        "NumSaturatedRings": 0.0,
+        "RingCount": 1.0,
+        "FractionCSP3": 0.1
+      },
+      "predictions": {
+        "solubility": -2.0515,
+        "bbbp": 0.8622,
+        "cyp3a4": 0.0733,
+        "toxicity": 0.28,
+        "cox2": 0.0151,
+        "hepg2": 0.1603,
+        "ace2": 0.09,
+        "half_life": 3.5862,
+        "binding_score": 5.1397
+      },
+      "heavy_atoms": 14
+    },
+    "CHEMBL327900": {
+      "descriptors": {
+        "MolWt": 370.489,
+        "MolLogP": 5.4942,
+        "NumHDonors": 0.0,
+        "NumHAcceptors": 2.0,
+        "TPSA": 34.14,
+        "NumRotatableBonds": 3.0,
+        "NumAromaticRings": 2.0,
+        "NumSaturatedRings": 1.0,
+        "RingCount": 4.0,
+        "FractionCSP3": 0.3636
+      },
+      "predictions": {
+        "solubility": -4.0234,
+        "bbbp": 0.8067,
+        "cyp3a4": 0.2867,
+        "toxicity": 0.4133,
+        "cox2": 1.0,
+        "hepg2": 0.1668,
+        "ace2": 0.095,
+        "half_life": 9.1512,
+        "binding_score": 6.4524
+      },
+      "heavy_atoms": 26
+    },
+    "CHEMBL3400659": {
+      "descriptors": {
+        "MolWt": 552.664,
+        "MolLogP": 3.3918,
+        "NumHDonors": 3.0,
+        "NumHAcceptors": 8.0,
+        "TPSA": 130.36,
+        "NumRotatableBonds": 6.0,
+        "NumAromaticRings": 1.0,
+        "NumSaturatedRings": 2.0,
+        "RingCount": 5.0,
+        "FractionCSP3": 0.5938
+      },
+      "predictions": {
+        "solubility": -3.3024,
+        "bbbp": 0.6133,
+        "cyp3a4": 0.4733,
+        "toxicity": 0.39,
+        "cox2": 0.1005,
+        "hepg2": 0.2677,
+        "ace2": 0.2733,
+        "half_life": 14.53,
+        "binding_score": 6.4917
+      },
+      "heavy_atoms": 40
+    },
+    "CHEMBL34913": {
+      "descriptors": {
+        "MolWt": 338.404,
+        "MolLogP": 3.4842,
+        "NumHDonors": 1.0,
+        "NumHAcceptors": 4.0,
+        "TPSA": 86.19,
+        "NumRotatableBonds": 3.0,
+        "NumAromaticRings": 2.0,
+        "NumSaturatedRings": 1.0,
+        "RingCount": 3.0,
+        "FractionCSP3": 0.4375
+      },
+      "predictions": {
+        "solubility": -3.5954,
+        "bbbp": 0.7167,
+        "cyp3a4": 0.3067,
+        "toxicity": 0.3133,
+        "cox2": 0.7425,
+        "hepg2": 0.2073,
+        "ace2": 0.0583,
+        "half_life": 8.5141,
+        "binding_score": 6.7907
+      },
+      "heavy_atoms": 23
+    },
+    "CHEMBL395091": {
+      "descriptors": {
+        "MolWt": 237.73,
+        "MolLogP": 2.8978,
+        "NumHDonors": 1.0,
+        "NumHAcceptors": 2.0,
+        "TPSA": 29.1,
+        "NumRotatableBonds": 2.0,
+        "NumAromaticRings": 1.0,
+        "NumSaturatedRings": 1.0,
+        "RingCount": 2.0,
+        "FractionCSP3": 0.4615
+      },
+      "predictions": {
+        "solubility": -2.1087,
+        "bbbp": 0.9667,
+        "cyp3a4": 0.2,
+        "toxicity": 0.5333,
+        "cox2": 0.3387,
+        "hepg2": 0.0951,
+        "ace2": 0.09,
+        "half_life": 13.0017,
+        "binding_score": 6.2433
+      },
+      "heavy_atoms": 16
+    },
+    "CHEMBL408215": {
+      "descriptors": {
+        "MolWt": 414.434,
+        "MolLogP": 3.4834,
+        "NumHDonors": 2.0,
+        "NumHAcceptors": 6.0,
+        "TPSA": 97.97,
+        "NumRotatableBonds": 5.0,
+        "NumAromaticRings": 3.0,
+        "NumSaturatedRings": 0.0,
+        "RingCount": 3.0,
+        "FractionCSP3": 0.125
+      },
+      "predictions": {
+        "solubility": -3.1372,
+        "bbbp": 0.63,
+        "cyp3a4": 0.56,
+        "toxicity": 0.3567,
+        "cox2": 0.46,
+        "hepg2": 0.1937,
+        "ace2": 0.08,
+        "half_life": 7.8692,
+        "binding_score": 6.9646
+      },
+      "heavy_atoms": 27
+    },
+    "CHEMBL411894": {
+      "descriptors": {
+        "MolWt": 429.42,
+        "MolLogP": 3.9503,
+        "NumHDonors": 1.0,
+        "NumHAcceptors": 4.0,
+        "TPSA": 77.98,
+        "NumRotatableBonds": 2.0,
+        "NumAromaticRings": 3.0,
+        "NumSaturatedRings": 0.0,
+        "RingCount": 4.0,
+        "FractionCSP3": 0.1176
+      },
+      "predictions": {
+        "solubility": -3.3348,
+        "bbbp": 0.8667,
+        "cyp3a4": 0.3067,
+        "toxicity": 0.3133,
+        "cox2": 0.9903,
+        "hepg2": 0.2904,
+        "ace2": 0.05,
+        "half_life": 18.0947,
+        "binding_score": 7.0657
+      },
+      "heavy_atoms": 28
+    },
+    "CHEMBL415324": {
+      "descriptors": {
+        "MolWt": 327.336,
+        "MolLogP": 3.0539,
+        "NumHDonors": 2.0,
+        "NumHAcceptors": 4.0,
+        "TPSA": 84.86,
+        "NumRotatableBonds": 6.0,
+        "NumAromaticRings": 2.0,
+        "NumSaturatedRings": 0.0,
+        "RingCount": 2.0,
+        "FractionCSP3": 0.1111
+      },
+      "predictions": {
+        "solubility": -3.6867,
+        "bbbp": 0.5733,
+        "cyp3a4": 0.38,
+        "toxicity": 0.1367,
+        "cox2": 0.1356,
+        "hepg2": 0.2148,
+        "ace2": 0.115,
+        "half_life": 3.4509,
+        "binding_score": 5.8176
+      },
+      "heavy_atoms": 24
+    },
+    "CHEMBL4544804": {
+      "descriptors": {
+        "MolWt": 280.327,
+        "MolLogP": 3.9078,
+        "NumHDonors": 1.0,
+        "NumHAcceptors": 4.0,
+        "TPSA": 61.28,
+        "NumRotatableBonds": 3.0,
+        "NumAromaticRings": 3.0,
+        "NumSaturatedRings": 0.0,
+        "RingCount": 3.0,
+        "FractionCSP3": 0.1176
+      },
+      "predictions": {
+        "solubility": -3.272,
+        "bbbp": 0.9267,
+        "cyp3a4": 0.42,
+        "toxicity": 0.3267,
+        "cox2": 0.5975,
+        "hepg2": 0.2201,
+        "ace2": 0.0583,
+        "half_life": 7.6134,
+        "binding_score": 5.6069
+      },
+      "heavy_atoms": 21
+    },
+    "CHEMBL457000": {
+      "descriptors": {
+        "MolWt": 575.959,
+        "MolLogP": 7.2715,
+        "NumHDonors": 2.0,
+        "NumHAcceptors": 7.0,
+        "TPSA": 93.57,
+        "NumRotatableBonds": 14.0,
+        "NumAromaticRings": 2.0,
+        "NumSaturatedRings": 0.0,
+        "RingCount": 2.0,
+        "FractionCSP3": 0.5
+      },
+      "predictions": {
+        "solubility": -4.8344,
+        "bbbp": 0.68,
+        "cyp3a4": 0.32,
+        "toxicity": 0.3867,
+        "cox2": 0.4549,
+        "hepg2": 0.2751,
+        "ace2": 0.2307,
+        "half_life": 10.2466,
+        "binding_score": 6.0457
+      },
+      "heavy_atoms": 37
+    },
+    "CHEMBL4791577": {
+      "descriptors": {
+        "MolWt": 353.433,
+        "MolLogP": -0.2197,
+        "NumHDonors": 3.0,
+        "NumHAcceptors": 6.0,
+        "TPSA": 141.28,
+        "NumRotatableBonds": 4.0,
+        "NumAromaticRings": 2.0,
+        "NumSaturatedRings": 0.0,
+        "RingCount": 2.0,
+        "FractionCSP3": 0.1667
+      },
+      "predictions": {
+        "solubility": -2.8036,
+        "bbbp": 0.78,
+        "cyp3a4": 0.2933,
+        "toxicity": 0.2733,
+        "cox2": 0.7149,
+        "hepg2": 0.1505,
+        "ace2": 0.1167,
+        "half_life": 8.5131,
+        "binding_score": 6.1248
+      },
+      "heavy_atoms": 23
+    },
+    "CHEMBL4799227": {
+      "descriptors": {
+        "MolWt": 482.562,
+        "MolLogP": 2.602,
+        "NumHDonors": 1.0,
+        "NumHAcceptors": 6.0,
+        "TPSA": 124.59,
+        "NumRotatableBonds": 6.0,
+        "NumAromaticRings": 3.0,
+        "NumSaturatedRings": 1.0,
+        "RingCount": 4.0,
+        "FractionCSP3": 0.2917
+      },
+      "predictions": {
+        "solubility": -3.6395,
+        "bbbp": 0.8667,
+        "cyp3a4": 0.3133,
+        "toxicity": 0.4867,
+        "cox2": 0.0872,
+        "hepg2": 0.1054,
+        "ace2": 0.1883,
+        "half_life": 205.8302,
+        "binding_score": 6.6908
+      },
+      "heavy_atoms": 34
+    },
+    "CHEMBL514817": {
+      "descriptors": {
+        "MolWt": 333.501,
+        "MolLogP": 3.5011,
+        "NumHDonors": 1.0,
+        "NumHAcceptors": 4.0,
+        "TPSA": 45.23,
+        "NumRotatableBonds": 5.0,
+        "NumAromaticRings": 1.0,
+        "NumSaturatedRings": 4.0,
+        "RingCount": 5.0,
+        "FractionCSP3": 0.7778
+      },
+      "predictions": {
+        "solubility": -3.3203,
+        "bbbp": 0.8022,
+        "cyp3a4": 0.2933,
+        "toxicity": 0.2067,
+        "cox2": 0.3006,
+        "hepg2": 0.1841,
+        "ace2": 0.1183,
+        "half_life": 16.2678,
+        "binding_score": 6.3081
+      },
+      "heavy_atoms": 23
+    },
+    "CHEMBL67324": {
+      "descriptors": {
+        "MolWt": 320.414,
+        "MolLogP": 2.561,
+        "NumHDonors": 1.0,
+        "NumHAcceptors": 4.0,
+        "TPSA": 72.19,
+        "NumRotatableBonds": 4.0,
+        "NumAromaticRings": 2.0,
+        "NumSaturatedRings": 1.0,
+        "RingCount": 3.0,
+        "FractionCSP3": 0.4375
+      },
+      "predictions": {
+        "solubility": -2.1784,
+        "bbbp": 0.7667,
+        "cyp3a4": 0.3467,
+        "toxicity": 0.4,
+        "cox2": 0.3799,
+        "hepg2": 0.1475,
+        "ace2": 0.0933,
+        "half_life": 10.0132,
+        "binding_score": 6.4833
+      },
+      "heavy_atoms": 22
+    },
+    "CHEMBL67659": {
+      "descriptors": {
+        "MolWt": 488.506,
+        "MolLogP": 6.0212,
+        "NumHDonors": 0.0,
+        "NumHAcceptors": 3.0,
+        "TPSA": 51.96,
+        "NumRotatableBonds": 6.0,
+        "NumAromaticRings": 4.0,
+        "NumSaturatedRings": 0.0,
+        "RingCount": 4.0,
+        "FractionCSP3": 0.16
+      },
+      "predictions": {
+        "solubility": -4.3102,
+        "bbbp": 0.8667,
+        "cyp3a4": 0.4667,
+        "toxicity": 0.66,
+        "cox2": 0.8916,
+        "hepg2": 0.2386,
+        "ace2": 0.1208,
+        "half_life": 14.6124,
+        "binding_score": 6.0194
+      },
+      "heavy_atoms": 34
+    },
+    "CHEMBL67721": {
+      "descriptors": {
+        "MolWt": 517.504,
+        "MolLogP": 5.4172,
+        "NumHDonors": 1.0,
+        "NumHAcceptors": 4.0,
+        "TPSA": 81.06,
+        "NumRotatableBonds": 6.0,
+        "NumAromaticRings": 4.0,
+        "NumSaturatedRings": 0.0,
+        "RingCount": 4.0,
+        "FractionCSP3": 0.12
+      },
+      "predictions": {
+        "solubility": -4.2429,
+        "bbbp": 0.82,
+        "cyp3a4": 0.4733,
+        "toxicity": 0.4183,
+        "cox2": 0.8028,
+        "hepg2": 0.2404,
+        "ace2": 0.1492,
+        "half_life": 11.0867,
+        "binding_score": 5.4319
+      },
+      "heavy_atoms": 36
+    },
+    "CHEMBL76692": {
+      "descriptors": {
+        "MolWt": 397.427,
+        "MolLogP": 4.5619,
+        "NumHDonors": 1.0,
+        "NumHAcceptors": 4.0,
+        "TPSA": 82.53,
+        "NumRotatableBonds": 4.0,
+        "NumAromaticRings": 4.0,
+        "NumSaturatedRings": 0.0,
+        "RingCount": 4.0,
+        "FractionCSP3": 0.0476
+      },
+      "predictions": {
+        "solubility": -3.5958,
+        "bbbp": 0.7667,
+        "cyp3a4": 0.5133,
+        "toxicity": 0.3333,
+        "cox2": 0.8575,
+        "hepg2": 0.2832,
+        "ace2": 0.0767,
+        "half_life": 11.0491,
+        "binding_score": 6.1538
+      },
+      "heavy_atoms": 28
+    }
+  }
+}

@@ -28,8 +28,12 @@ MODEL_REGISTRY: Dict[str, Dict[str, str]] = {
     },
     "binding_score": {
         "file": "binding_model.pkl",
-        "description": "Drug-target binding affinity",
-        "unit": "kcal/mol",
+        "description": "Drug-target binding affinity (pKd-like score)",
+        # NOT kcal/mol — the model emits a positive pKd-like score (~4-9),
+        # higher = stronger. kcal/mol is only the real Vina docking endpoint
+        # (/api/dock/*, field affinity_kcal_mol). See routers/binding_score.py.
+        "unit": "pKd-like score",
+        "direction": "higher = stronger binding",
         "version": "v1",
         "algorithm": "RandomForestRegressor",
     },
@@ -173,6 +177,15 @@ class ModelLoader:
             out[key] = {
                 "description": meta["description"],
                 "unit": meta["unit"],
+                # Explicit for consumers: how to read the raw `prediction`.
+                # Classifiers return P(positive class); `binding_score` is a
+                # pKd-like score (higher = stronger) — NOT kcal/mol.
+                "direction": meta.get(
+                    "direction",
+                    "P(positive class), 0-1"
+                    if meta.get("algorithm", "").endswith("Classifier")
+                    else "raw model output",
+                ),
                 "version": meta.get("version", "v1"),
                 "algorithm": meta.get("algorithm", "unknown"),
                 "status": "ready" if key in self._models else "not_available",

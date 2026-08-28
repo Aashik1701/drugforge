@@ -40,7 +40,14 @@ class PredictionResponse(BaseModel):
         smiles: The input SMILES string (echoed back).
         prediction: Raw model output (float).
         confidence: Model confidence / probability (0-1 for classifiers).
-        unit: Unit of measurement for the prediction.
+        unit: Unit of measurement for the prediction. NOT an energy unless it
+            literally says so — e.g. `binding_score` returns a pKd-like score,
+            not kcal/mol (that is only the real docking endpoint,
+            `/api/dock/*`, whose field is `affinity_kcal_mol`).
+        direction: How to read `prediction` — e.g. "higher = stronger binding",
+            "higher = more likely toxic". None when the raw value speaks for
+            itself (probabilities, physical quantities).
+        interpretation: Optional one-line human summary of this result.
         model_name: Name of the model used.
         model_version: Version tag of the model.
         molecular_weight: Calculated molecular weight (g/mol).
@@ -53,6 +60,8 @@ class PredictionResponse(BaseModel):
     prediction: float
     confidence: Optional[float] = None
     unit: str
+    direction: Optional[str] = None
+    interpretation: Optional[str] = None
     model_name: str
     model_version: str = "1.0"
     molecular_weight: Optional[float] = None

@@ -28,18 +28,28 @@ def _get_model():
 @router.post("/binding-score", response_model=PredictionResponse)
 async def predict_binding_score(mol: MoleculeInput) -> PredictionResponse:
     """
-    Predict drug-target binding affinity score.
+    Predict a drug-target binding score.
+
+    NOTE ON UNITS (this was previously mislabelled "kcal/mol"): the model emits
+    a **pKd-like affinity score** — a positive number, roughly 4-9 in practice,
+    where **higher means stronger predicted binding**. It is NOT a binding free
+    energy in kcal/mol and is NOT comparable to the AutoDock Vina affinities
+    from `/api/dock/*` (those are real kcal/mol, more-negative = stronger). The
+    response carries `unit` and `direction` so a consumer never has to guess.
 
     Args:
         mol: Request body with a SMILES string.
 
     Returns:
-        PredictionResponse with binding affinity in kcal/mol.
+        PredictionResponse; `prediction` is the pKd-like score,
+        `direction` = "higher = stronger binding".
 
     Raises:
         HTTPException 400: Invalid SMILES.
         HTTPException 503: Model not loaded.
     """
+    BINDING_UNIT = "pKd-like score"
+    BINDING_DIRECTION = "higher = stronger binding"
     # Validate SMILES first (applies to both real and simulated paths)
     try:
         validate_smiles(mol.smiles)
@@ -63,7 +73,7 @@ async def predict_binding_score(mol: MoleculeInput) -> PredictionResponse:
             logger.error(f"Binding score inference failed: {e}")
             raise HTTPException(status_code=500, detail="Prediction failed")
         elapsed_ms = round((time.perf_counter() - start) * 1000, 2)
-        meta = {"unit": "kcal/mol", "molecular_weight": mol_weight, "execution_time_ms": elapsed_ms}
+        meta = {"unit": BINDING_UNIT, "direction": BINDING_DIRECTION, "molecular_weight": mol_weight, "execution_time_ms": elapsed_ms}
     else:
         # ── Simulated fallback (DeepPurpose not installed) ──────────
         # TODO: Integrate DeepPurpose for real binding predictions
@@ -74,18 +84,25 @@ async def predict_binding_score(mol: MoleculeInput) -> PredictionResponse:
         confidence = 0.0  # 0.0 signals "simulated"
         elapsed_ms = round((time.perf_counter() - start) * 1000, 2)
         meta = {
-            "unit": "kcal/mol",
+            "unit": BINDING_UNIT,
+            "direction": BINDING_DIRECTION,
             "molecular_weight": mol_weight,
             "execution_time_ms": elapsed_ms,
             "simulated": True,
-            "note": "DeepPurpose model not available — result is simulated",
+            "note": "DeepPurpose model not available — result is a simulated pKd-like score, not kcal/mol",
         }
 
     result = PredictionResponse(
         smiles=mol.smiles,
         prediction=round(prediction, 4),
         confidence=confidence,
-        unit="kcal/mol",
+        unit=BINDING_UNIT,
+        direction=BINDING_DIRECTION,
+        interpretation=(
+            "Simulated pKd-like score (model unavailable)"
+            if model is None else
+            f"pKd-like score {round(prediction, 2)} — higher = stronger predicted binding; not kcal/mol"
+        ),
         model_name="binding_score",
         molecular_weight=mol_weight,
         execution_time_ms=elapsed_ms,

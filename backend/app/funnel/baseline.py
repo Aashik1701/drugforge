@@ -75,10 +75,13 @@ def main() -> int:
     print(f"baseline run_id={run_id}  set={cs.set_id} ({len(candidates)} candidates, "
           f"sha={cs.content_sha256[:12]})  seeds={SEEDS}", flush=True)
 
-    t0 = time.perf_counter()
+    # Set BEFORE the first get_fabric_async() so parent + LocalWorker agree
+    # on the job-store file. (funnel.py has the same requirement.)
     job_db = f"/tmp/funnel_baseline_{run_id}.db"
+    os.environ["JOB_STORE_PATH"] = job_db
+
+    t0 = time.perf_counter()
     with local_worker_process({"COMPUTE_MODE": "balanced", "JOB_STORE_PATH": job_db}):
-        os.environ["JOB_STORE_PATH"] = job_db
         results, dock_wall, jobs, vina_version = asyncio.run(_run(candidates, dp))
     total_wall = time.perf_counter() - t0
 
