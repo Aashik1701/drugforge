@@ -1,0 +1,63 @@
+version: '3.8'
+
+services:
+  # Frontend development server
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile.frontend
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./src:/app/src
+      - ./public:/app/public
+    environment:
+      - REACT_APP_API_URL=http://localhost:5001
+      - CHOKIDAR_USEPOLLING=true
+    depends_on:
+      - backend
+    networks:
+      - drugforge-network
+
+  # Backend API server
+  backend:
+    build:
+      context: ./backendML
+      dockerfile: ../Dockerfile
+    ports:
+      - "5001:5001"
+    volumes:
+      - ./backendML:/app
+    environment:
+      - FLASK_ENV=development
+      - FLASK_DEBUG=1
+      - MODEL_PATH=/app/models
+    networks:
+      - drugforge-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5001/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Production build
+  production:
+    build:
+      context: .
+      dockerfile: Dockerfile.production
+    ports:
+      - "80:5001"
+    environment:
+      - FLASK_ENV=production
+    profiles:
+      - production
+    networks:
+      - drugforge-network
+
+networks:
+  drugforge-network:
+    driver: bridge
+
+volumes:
+  model_data:
+    driver: local

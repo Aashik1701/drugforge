@@ -1,0 +1,155 @@
+{
+  "name": "DrugForge AI",
+  "version": "1.0.0",
+  "description": "AI-Driven Drug Discovery Platform",
+  "author": "DrugForge Team",
+  "license": "MIT",
+  "homepage": "https://github.com/Aashik1701/Drug_Discovery_with_Intel_AI",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Aashik1701/Drug_Discovery_with_Intel_AI.git"
+  },
+  "bugs": {
+    "url": "https://github.com/Aashik1701/Drug_Discovery_with_Intel_AI/issues"
+  },
+  "engines": {
+    "node": ">=16.0.0",
+    "npm": ">=8.0.0",
+    "python": ">=3.8.0"
+  },
+  "config": {
+    "frontend": {
+      "port": 3000,
+      "build_command": "npm run build",
+      "dev_command": "npm start",
+      "test_command": "npm test"
+    },
+    "backend": {
+      "port": 5001,
+      "dev_command": "python app.py",
+      "prod_command": "gunicorn -w 4 -b 0.0.0.0:5001 app:app",
+      "requirements": "requirements.txt"
+    },
+    "api": {
+      "base_url": "http://localhost:5001",
+      "endpoints": {
+        "health": "/health",
+        "bbbp": "/predict/bbbp",
+        "cyp3a4": "/predict/cyp3a4",
+        "half_life": "/predict/half-life",
+        "cox2": "/predict/cox2",
+        "hepg2": "/predict/hepg2",
+        "ace2": "/predict/ace2",
+        "solubility": "/predict/solubility",
+        "toxicity": "/predict/toxicity",
+        "binding_score": "/predict/binding-score"
+      }
+    },
+    "development": {
+      "cors_origins": ["http://localhost:3000", "http://127.0.0.1:3000"],
+      "log_level": "INFO",
+      "debug": true
+    },
+    "production": {
+      "cors_origins": ["https://drugforge.ai"],
+      "log_level": "WARNING", 
+      "debug": false,
+      "ssl": true
+    }
+  },
+  "features": {
+    "implemented": [
+      "Blood-Brain Barrier Penetration",
+      "CYP3A4 Interaction",
+      "Half-Life Prediction",
+      "COX2 Inhibition",
+      "HEPG2 Toxicity",
+      "ACE2 Binding",
+      "Solubility Prediction",
+      "General Toxicity",
+      "Drug-Target Binding Score"
+    ],
+    "planned": [
+      "Molecular Docking",
+      "Target Identification",
+      "Virtual Screening",
+      "Batch Predictions",
+      "Result Analytics",
+      "User Authentication",
+      "Prediction History"
+    ]
+  },
+  "tech_stack": {
+    "frontend": {
+      "framework": "React 18",
+      "routing": "React Router v6",
+      "styling": "Tailwind CSS",
+      "animations": "Framer Motion",
+      "icons": "Lucide React",
+      "http": "Axios",
+      "build": "Vite"
+    },
+    "backend": {
+      "framework": "Flask",
+      "ml": "Scikit-learn",
+      "chemistry": "RDKit",
+      "data": "Pandas, NumPy",
+      "server": "Gunicorn",
+      "cors": "Flask-CORS"
+    },
+    "deployment": {
+      "containerization": "Docker",
+      "orchestration": "Docker Compose",
+      "reverse_proxy": "Nginx",
+      "process_manager": "PM2"
+    }
+  },
+  "file_structure": {
+    "src/": "Frontend React application",
+    "src/components/": "React components",
+    "src/components/shared/": "Reusable UI components",
+    "src/hooks/": "Custom React hooks",
+    "src/services/": "API service layer",
+    "src/utils/": "Utility functions",
+    "backendML/": "Flask API backend",
+    "backendML/ADMET Properties/": "ADMET prediction models",
+    "backendML/Drug Target Binding Score/": "Binding affinity models",
+    "backendML/Molecular Docking/": "Docking simulation tools",
+    "backendML/Target Identification/": "Target prediction models"
+  },
+  "scripts": {
+    "setup": "./setup.sh",
+    "dev:frontend": "npm start",
+    "dev:backend": "cd backendML && python app.py",
+    "build": "npm run build",
+    "test": "npm test",
+    "docker:dev": "docker-compose -f docker-compose.dev.yml up",
+    "docker:prod": "docker-compose -f docker-compose.dev.yml --profile production up"
+  },
+  "environment_variables": {
+    "frontend": {
+      "REACT_APP_API_URL": "Backend API base URL",
+      "REACT_APP_ENV": "Environment (development/production)"
+    },
+    "backend": {
+      "FLASK_ENV": "Flask environment",
+      "FLASK_DEBUG": "Debug mode",
+      "MODEL_PATH": "Path to ML models",
+      "RDKIT_PATH": "RDKit installation path"
+    }
+  },
+  "deployment_targets": {
+    "development": {
+      "frontend": "http://localhost:3000",
+      "backend": "http://localhost:5001"
+    },
+    "staging": {
+      "frontend": "https://staging.drugforge.ai",
+      "backend": "https://api-staging.drugforge.ai"
+    },
+    "production": {
+      "frontend": "https://drugforge.ai",
+      "backend": "https://api.drugforge.ai"
+    }
+  }
+}

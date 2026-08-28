@@ -47,3 +47,4 @@ playwright-report/
 # See docs/architecture/compute-fabric.md for why jobs are SQLite-backed
 # rather than Supabase. -wal/-shm/-journal are SQLite's own auxiliary files.
 backend/app/jobs/jobs.db*
+/docs
