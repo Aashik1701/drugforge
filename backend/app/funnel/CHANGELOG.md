@@ -188,3 +188,103 @@ Spearman rho over the 5 commonly-docked = +1.000. 0 false negatives.
 **Bottom line for Task 3:** offline prediction == live result (no harness bug);
 recall@5 unchanged at 2/5; the prescreen is not "fixed" — the baseline's top 3
 docked hits carry no cheap signal that any of the 8 tested policies can exploit.
+
+---
+
+# Pass 3
+
+## Task 1 — recall vs docking-budget frontier (offline, cox2_v1, policy v7)
+
+`funnel/frontier.py` sweeps N = 1..45 against `runs/baseline_cox2_v1.json` with
+zero docking. Estimated wall-clock is summed from the per-candidate `dock_wall_s`
+already in the baseline record. Artifacts: `runs/frontier_cox2_v1.csv`,
+`runs/frontier_cox2_v1.svg`.
+
+The funnel filters 4 of 45 candidates (drug-likeness), so its docking pool is
+**41** — it can never reach N > 41, and the last 4 recall points beyond N≈32
+come from candidates the *baseline* docked that the funnel's prescreen buries.
+
+| recall@5 (tie-credited) | first reached at N | jobs (4N) | est. dock wall | saving vs full 180-job baseline |
+|---|---|---|---|---|
+| 0/5 | N=1–3 | 4–12 | 118–555 s | — |
+| **2/5** | **N=4** | 16 | ~644 s | **11.1×** |
+| (plateau 2/5) | N=4–9 | | | |
+| **4/5** | **N=10** | 40 | ~1777 s | **4.0×** |
+| (plateau 4/5) | N=10–31 | | | |
+| **5/5** | **N=32** | 128 | ~4321 s | 1.7× |
+
+Literal recall@5 lags: 1/5 at N=4, 2/5 at N=10, 3/5 at N=15, 4/5 at N=30, 5/5
+at N=32. recall@10 (tie-credited): 6/10 at N=4, 9/10 at N=10, 10/10 at N=32.
+
+Marginal efficiency of recall@5(tie): 0→2 costs 4 candidates (0.50/cand);
+2→4 costs 6 (0.33/cand); 4→5 costs **22** (0.045/cand) — a 7× efficiency drop.
+
+**Recommended operating point: N = 10.** recall@5 = 4/5 (tie-credited) / 2/5
+(literal), recall@10 = 9/10, ~4× docking saving (40 jobs vs 180, ~1.8 ks vs
+7.1 ks). It is the knee: below it you sit at 2/5; above it, 22 more candidates
+(88 jobs) buy exactly one more recall point, because CHEMBL2315019 — the single
+strongest docker (−7.56) — has cox2 P=0.05 and binding_score 5.35 and the
+prescreen ranks it 32nd of 41. A cheaper option is **N = 4** (2/5 tie, 11×
+saving) if only the easy hits matter.
+
+Framed as asked: *to recover 4 of the baseline's top 5 (tie-credited) the funnel
+docks 10 candidates instead of 45 — a 4.5× candidate / ~4× wall-clock saving. It
+does not reach 5/5 below N=32 (≈1.7× saving); the curve plateaus at 2/5 across
+N=4–9 and at 4/5 across N=10–31.*
+
+## Task 2 — ACE2 docking box fixed (was a shipped bug)
+
+**The shipped `TARGET_CONFIG["ace2"]` box was wrong.** `center=[15.1, 22.5, 9.0]`,
+20 A cube — **0 of the 6265 receptor atoms fall inside it** (the box sits ~70 A
+outside the ACE2 structure). Every docking job submitted with `target=ace2`
+(offered in the frontend Docking Studio and `/api/dock/*`) has been docking
+ligands into empty space and returning meaningless affinities.
+
+**New box:** centred on the **catalytic Zn2+** of ACE2 (PDB 1R42:
+53.141, 68.638, 31.204 → recorded as `[53.1, 68.6, 31.2]`), 20 A cube (matches
+the cox2 box size). Centring on the catalytic metal is standard practice for a
+metalloprotease; 1R42 is the apo structure so there is no co-crystal ligand to
+centre on. The new box contains **361 receptor atoms (5.8%)** — comparable to
+the working cox2 box (270 atoms, 1.2%).
+
+**Sanity docks** (ex=8, --cpu 1, seeds [1,42,2024,31337], conformer seed 42;
+mean best affinity, kcal/mol):
+
+| ligand | mean | sd | note |
+|---|---:|---:|---|
+| MLN-4760 | **-6.00** | 0.36 | canonical ACE2 inhibitor, Ki ~0.44 nM |
+| lisinopril | **-5.80** | 0.25 | ACE inhibitor, weak ACE2 binder |
+| captopril | **-4.39** | 0.02 | ACE inhibitor, weak ACE2 binder |
+| ethanol | **-2.65** | 0.00 | negative control |
+
+**PASS** — monotone MLN-4760 > lisinopril > captopril > ethanol (matches known
+potency order); every known binder is ≥1.5 kcal/mol stronger than the control
+(weakest gap 1.75); MLN-4760 at -6.0 is a plausible inhibitor range for a blind
+20 A dock. The box discriminates.
+
+Fixed in three places (kept in sync): `app/routers/dock.py`,
+`app/jobs/workers/docking_worker.py`, `download_targets.py`. No docking
+parameters changed — only the ace2 box centre.
+
+## Task 3 — held-out ACE2 baseline: candidate set built, baseline LAUNCHED
+
+Task 2 passed, so the held-out baseline proceeds.
+
+**Candidate set `ace2_v1`** — same builder, same pipeline as `cox2_v1`
+(`build_candidate_set.py` refactored to `--target {cox2,ace2}`; cox2 output
+re-verified byte-identical, sha `9ae649ec…`).
+- source: `ml/datasets/target_identification/ACE-2.csv` (ChEMBL **CHEMBL3736**,
+  Angiotensin-converting enzyme 2, Homo sapiens).
+- 190 rows → 0 no-SMILES, 0 parse fail, 54 set-filtered, **122 unique**.
+- stratified sample {potent 14, moderate 13, weak 14} + 4 references
+  (MLN-4760, lisinopril, captopril, ethanol — the Task-2 sanity ligands).
+- **45 molecules**, content_sha256 `b55d875f1ad82fec5122cf54ce0730f41176621a1c617c2a59dd9296368f42ca`.
+- `funnel/datasets/ace2_candidates_v1.csv` + `.provenance.md`.
+
+**Baseline run** (background, output to a FILE): `funnel.baseline
+--candidates … --set-id ace2_v1 --target ace2`, docking into the NEW Zn-centred
+box, ex=8, --cpu 1, seeds [1,42,2024,31337], RunRecord v1.0.0 →
+`runs/baseline_ace2_v1.json`. Smoke (2 candidates) reproduced the Task-2 sanity
+affinities bit-identically (captopril −4.393, identical per-seed).
+
+NOT evaluated against the selected policy this pass — held out.

@@ -35,7 +35,10 @@ TARGETS = {
         "pdb_id": "1R42",
         "output": "ace2_receptor.pdbqt",
         "description": "Angiotensin-Converting Enzyme 2 (ACE2)",
-        "center": [15.1, 22.5, 9.0],
+        # Catalytic Zn2+ of 1R42 (53.141, 68.638, 31.204). FIXED 2026-08 — the
+        # previous [15.1, 22.5, 9.0] sat outside the protein entirely. Keep in
+        # sync with app/routers/dock.py and app/jobs/workers/docking_worker.py.
+        "center": [53.1, 68.6, 31.2],
         "box_size": [20.0, 20.0, 20.0],
     },
 }

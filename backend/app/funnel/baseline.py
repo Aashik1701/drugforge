@@ -35,7 +35,7 @@ NUM_MODES = 5
 TARGET = "cox2"
 
 
-async def _run(candidates, dp: DockingParams):
+async def _run(candidates, dp: DockingParams, target: str):
     from utils.vina_env import resolved_vina_version
     vina_version = resolved_vina_version()
 
@@ -47,7 +47,7 @@ async def _run(candidates, dp: DockingParams):
               f"x{len(SEEDS)} seeds ...", flush=True)
         dr = await dock_candidate(
             c.ligand_id, c.smiles, SEEDS,
-            target=TARGET, exhaustiveness=EXHAUSTIVENESS,
+            target=target, exhaustiveness=EXHAUSTIVENESS,
             conformer_seed=CONFORMER_SEED, num_modes=NUM_MODES,
         )
         results.append(dr)
@@ -64,16 +64,22 @@ def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--limit", type=int, default=None, help="dock only the first N candidates")
     ap.add_argument("--out", type=str, default=None)
+    ap.add_argument("--candidates", type=str, default=None,
+                    help="candidate-set CSV (default: the cox2_v1 set)")
+    ap.add_argument("--set-id", type=str, default="cox2_v1")
+    ap.add_argument("--target", type=str, default=TARGET,
+                    help="docking target key in TARGET_CONFIG (cox2 | ace2)")
     args = ap.parse_args()
 
-    cs = load_candidate_set()
+    target = args.target
+    cs = load_candidate_set(csv_path=args.candidates, set_id=args.set_id)
     candidates = cs.candidates[: args.limit] if args.limit else cs.candidates
     dp = DockingParams(exhaustiveness=EXHAUSTIVENESS, seeds=SEEDS, cpu=1,
-                       target=TARGET, num_modes=NUM_MODES, conformer_seed=CONFORMER_SEED)
+                       target=target, num_modes=NUM_MODES, conformer_seed=CONFORMER_SEED)
 
     run_id = uuid.uuid4().hex[:12]
-    print(f"baseline run_id={run_id}  set={cs.set_id} ({len(candidates)} candidates, "
-          f"sha={cs.content_sha256[:12]})  seeds={SEEDS}", flush=True)
+    print(f"baseline run_id={run_id}  set={cs.set_id} target={target} "
+          f"({len(candidates)} candidates, sha={cs.content_sha256[:12]})  seeds={SEEDS}", flush=True)
 
     # Set BEFORE the first get_fabric_async() so parent + LocalWorker agree
     # on the job-store file. (funnel.py has the same requirement.)
@@ -82,7 +88,7 @@ def main() -> int:
 
     t0 = time.perf_counter()
     with local_worker_process({"COMPUTE_MODE": "balanced", "JOB_STORE_PATH": job_db}):
-        results, dock_wall, jobs, vina_version = asyncio.run(_run(candidates, dp))
+        results, dock_wall, jobs, vina_version = asyncio.run(_run(candidates, dp, target))
     total_wall = time.perf_counter() - t0
 
     entries = rank_docked(results)

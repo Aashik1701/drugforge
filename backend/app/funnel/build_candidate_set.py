@@ -1,24 +1,28 @@
 """
-Build the versioned COX-2 candidate set from PUBLIC ChEMBL data.
+Build a versioned candidate set from PUBLIC ChEMBL data.
 
-Source: ml/datasets/target_identification/COX-2.csv — a ChEMBL bioactivity
-export for target CHEMBL230 (Cyclooxygenase-2, Homo sapiens), already vendored
-in this repo (see ml/README.md). No molecules are invented; no activity labels
-are fabricated. The ChEMBL activity fields are carried through verbatim as
-metadata and used only to stratify a deterministic sample — they are NOT the
-evaluation's ground truth (the eval compares funnel-vs-baseline docking).
+Source: the ChEMBL bioactivity exports vendored under
+ml/datasets/target_identification/ (see ml/README.md). No molecules are
+invented; no activity labels are fabricated. The ChEMBL activity fields are
+carried through verbatim as metadata and used only to stratify a deterministic
+sample — they are NOT the evaluation's ground truth.
 
-Output: funnel/datasets/cox2_candidates_v1.csv  + .provenance.md
+Run:  cd backend/app && ../venv/bin/python -m funnel.build_candidate_set            # cox2 (default)
+      cd backend/app && ../venv/bin/python -m funnel.build_candidate_set --target ace2
 
-Run:  cd backend/app && ../venv/bin/python -m funnel.build_candidate_set
+Every target uses the IDENTICAL pipeline (same functions, same filter, same
+stratified deterministic sample) — only the source file, the ChEMBL target id,
+the per-bin sample sizes, and the reference-ligand list differ.
 """
 
 from __future__ import annotations
 
+import argparse
 import csv
 import hashlib
 import random
 import sys
+from dataclasses import dataclass, field
 from pathlib import Path
 
 from rdkit import Chem, RDLogger
@@ -28,25 +32,29 @@ RDLogger.DisableLog("rdApp.*")
 
 HERE = Path(__file__).resolve().parent
 REPO_ROOT = HERE.parents[2]
-SOURCE_CSV = REPO_ROOT / "ml" / "datasets" / "target_identification" / "COX-2.csv"
-OUT_CSV = HERE / "datasets" / "cox2_candidates_v1.csv"
-OUT_PROV = HERE / "datasets" / "cox2_candidates_v1.provenance.md"
+DATASET_DIR = REPO_ROOT / "ml" / "datasets" / "target_identification"
 
-SET_ID = "cox2_v1"
 RNG_SEED = 20260228
-TARGET_SAMPLED = 34          # sampled from ChEMBL; references are added on top
-PER_BIN = {"potent": 12, "moderate": 11, "weak_or_inactive": 11}
 
 # Set-construction filter (docking tractability only — applied equally to every
-# path, NOT the funnel's ADMET filter). Documented in the provenance file.
+# path, NOT the funnel's ADMET filter). Same for every target.
 MW_MIN, MW_MAX = 150.0, 600.0
 MAX_HEAVY_ATOMS = 45
 
-# 11 already-profiled reference ligands (docs/development/local-worker.md).
-# Standard drug structures; canonicalised by RDKit below. Included verbatim so
-# prior seed-variance / gap measurements stay comparable. References BYPASS the
-# set-construction filter (ethanol is an intentional negative control).
-REFERENCE_LIGANDS = [
+
+@dataclass(frozen=True)
+class TargetConfig:
+    set_id: str
+    source_csv: Path
+    chembl_target: str          # e.g. "CHEMBL230"
+    target_name: str
+    source_tag: str             # value written to the CSV `source` column for sampled rows
+    per_bin: dict               # {"potent": int, "moderate": int, "weak_or_inactive": int}
+    references: list             # [(name, smiles), ...]
+
+
+# 11 already-profiled reference ligands for cox2 (docs/development/local-worker.md).
+COX2_REFERENCES = [
     ("celecoxib",     "Cc1ccc(-c2cc(C(F)(F)F)nn2-c2ccc(S(N)(=O)=O)cc2)cc1"),
     ("rofecoxib",     "O=C1OCC(=C1c1ccccc1)c1ccc(S(C)(=O)=O)cc1"),
     ("indomethacin",  "COc1ccc2c(c1)c(CC(=O)O)c(C)n2C(=O)c1ccc(Cl)cc1"),
@@ -59,6 +67,36 @@ REFERENCE_LIGANDS = [
     ("caffeine",      "Cn1cnc2c1c(=O)n(C)c(=O)n2C"),
     ("ethanol",       "CCO"),
 ]
+
+# ACE2 references: the 3 known binders used in the Task-2 box sanity check plus
+# the ethanol negative control, so those measurements stay comparable.
+ACE2_REFERENCES = [
+    ("MLN-4760",   "CC(C)C[C@@H](C(=O)O)N[C@@H](Cc1cncn1Cc1cc(Cl)cc(Cl)c1)C(=O)O"),
+    ("lisinopril", "NCCCC[C@H](N[C@@H](CCc1ccccc1)C(=O)O)C(=O)N1CCC[C@H]1C(=O)O"),
+    ("captopril",  "CC(CS)C(=O)N1CCC[C@H]1C(=O)O"),
+    ("ethanol",    "CCO"),
+]
+
+CONFIGS = {
+    "cox2": TargetConfig(
+        set_id="cox2_v1",
+        source_csv=DATASET_DIR / "COX-2.csv",
+        chembl_target="CHEMBL230",
+        target_name="Cyclooxygenase-2",
+        source_tag="chembl_cox2_CHEMBL230",
+        per_bin={"potent": 12, "moderate": 11, "weak_or_inactive": 11},
+        references=COX2_REFERENCES,
+    ),
+    "ace2": TargetConfig(
+        set_id="ace2_v1",
+        source_csv=DATASET_DIR / "ACE-2.csv",
+        chembl_target="CHEMBL3736",
+        target_name="Angiotensin-converting enzyme 2",
+        source_tag="chembl_ace2_CHEMBL3736",
+        per_bin={"potent": 14, "moderate": 13, "weak_or_inactive": 14},
+        references=ACE2_REFERENCES,
+    ),
+}
 
 
 def largest_fragment_canonical(smiles: str) -> str | None:
@@ -88,22 +126,18 @@ def bin_for(pchembl: float | None, comment: str) -> str:
     return "weak_or_inactive"
 
 
-def main() -> int:
-    if not SOURCE_CSV.exists():
-        print(f"FATAL: source not found: {SOURCE_CSV}", file=sys.stderr)
+def build(cfg: TargetConfig) -> int:
+    out_csv = HERE / "datasets" / f"{cfg.set_id.replace('_v1', '')}_candidates_v1.csv"
+    out_prov = out_csv.with_suffix(".provenance.md")
+    if not cfg.source_csv.exists():
+        print(f"FATAL: source not found: {cfg.source_csv}", file=sys.stderr)
         return 1
 
-    n_rows = 0
-    n_no_smiles = 0
-    n_parse_fail = 0
-    n_filtered_setconstruction = 0
+    n_rows = n_no_smiles = n_parse_fail = n_filtered_setconstruction = 0
+    agg: dict[str, dict] = {}  # canonical_smiles -> aggregated record
 
-    # canonical_smiles -> aggregated record
-    agg: dict[str, dict] = {}
-
-    with SOURCE_CSV.open(newline="", encoding="utf-8") as fh:
-        reader = csv.DictReader(fh, delimiter=";")
-        for row in reader:
+    with cfg.source_csv.open(newline="", encoding="utf-8") as fh:
+        for row in csv.DictReader(fh, delimiter=";"):
             n_rows += 1
             smi_raw = (row.get("Smiles") or "").strip()
             if not smi_raw:
@@ -113,7 +147,6 @@ def main() -> int:
             if canon is None:
                 n_parse_fail += 1
                 continue
-
             mol = Chem.MolFromSmiles(canon)
             mw = Descriptors.MolWt(mol)
             heavy = mol.GetNumHeavyAtoms()
@@ -121,20 +154,15 @@ def main() -> int:
             if not (MW_MIN <= mw <= MW_MAX and heavy <= MAX_HEAVY_ATOMS and has_c):
                 n_filtered_setconstruction += 1
                 continue
-
             try:
                 pchembl = float(row.get("pChEMBL Value") or "")
             except ValueError:
                 pchembl = None
             comment = (row.get("Comment") or "").strip()
-
             rec = agg.setdefault(canon, {
                 "chembl_id": (row.get("Molecule ChEMBL ID") or "").strip(),
                 "name": (row.get("Molecule Name") or "").strip(),
-                "pchembl_values": [],
-                "types": set(),
-                "comments": set(),
-                "n_records": 0,
+                "pchembl_values": [], "types": set(), "comments": set(), "n_records": 0,
             })
             rec["n_records"] += 1
             if pchembl is not None:
@@ -146,22 +174,20 @@ def main() -> int:
             if not rec["name"] and row.get("Molecule Name"):
                 rec["name"] = row["Molecule Name"].strip()
 
-    print(f"source rows                : {n_rows}")
+    print(f"[{cfg.set_id}] source rows                : {n_rows}")
     print(f"  dropped (no SMILES)      : {n_no_smiles}")
     print(f"  dropped (RDKit parse)    : {n_parse_fail}")
     print(f"  dropped (set-construction filter MW/heavy): {n_filtered_setconstruction}")
     print(f"unique molecules (canonical, deduped): {len(agg)}")
 
-    # Reference canonical SMILES first, so we can exclude them from the sample pool.
     ref_canon: dict[str, str] = {}
-    for name, smi in REFERENCE_LIGANDS:
+    for name, smi in cfg.references:
         c = largest_fragment_canonical(smi)
         if c is None:
             print(f"FATAL: reference ligand {name} failed to parse", file=sys.stderr)
             return 1
         ref_canon[c] = name
 
-    # Bin the pool (excluding anything that is a reference structure).
     bins: dict[str, list[str]] = {"potent": [], "moderate": [], "weak_or_inactive": []}
     for canon, rec in agg.items():
         if canon in ref_canon:
@@ -173,14 +199,13 @@ def main() -> int:
     rng = random.Random(RNG_SEED)
     sampled: list[str] = []
     bin_counts: dict[str, int] = {}
-    for b, k in PER_BIN.items():
-        pool = sorted(bins[b])          # sort for determinism before shuffle
+    for b, k in cfg.per_bin.items():
+        pool = sorted(bins[b])
         rng.shuffle(pool)
         take = pool[:k]
         bin_counts[b] = len(take)
         sampled.extend(take)
 
-    # Assemble final rows.
     out_rows: list[dict] = []
 
     def add_row(ligand_id, name, canon, source, rec, is_ref):
@@ -201,17 +226,16 @@ def main() -> int:
     for canon in sampled:
         rec = agg[canon]
         lid = rec["chembl_id"] or ("MOL_" + hashlib.sha1(canon.encode()).hexdigest()[:10])
-        add_row(lid, rec["name"], canon, "chembl_cox2_CHEMBL230", rec, is_ref=False)
+        add_row(lid, rec["name"], canon, cfg.source_tag, rec, is_ref=False)
 
     for canon, refname in ref_canon.items():
-        rec = agg.get(canon)  # a reference may also appear in ChEMBL
+        rec = agg.get(canon)
         if rec:
             lid = rec["chembl_id"] or f"REF_{refname}"
             add_row(lid, rec["name"] or refname, canon, "reference+chembl", rec, is_ref=True)
         else:
             add_row(f"REF_{refname}", refname, canon, "reference", None, is_ref=True)
 
-    # Final dedup by canonical smiles (reference that was also sampled: keep ref row).
     seen: dict[str, dict] = {}
     for r in out_rows:
         key = r["smiles"]
@@ -222,11 +246,11 @@ def main() -> int:
             seen[key] = r
     final = sorted(seen.values(), key=lambda r: (r["is_reference"] == "false", r["ligand_id"]))
 
-    OUT_CSV.parent.mkdir(parents=True, exist_ok=True)
+    out_csv.parent.mkdir(parents=True, exist_ok=True)
     fieldnames = ["ligand_id", "name", "smiles", "source", "chembl_id",
                   "activity_pchembl_max", "activity_pchembl_n", "activity_types",
                   "activity_note", "is_reference"]
-    with OUT_CSV.open("w", newline="", encoding="utf-8") as fh:
+    with out_csv.open("w", newline="", encoding="utf-8") as fh:
         w = csv.DictWriter(fh, fieldnames=fieldnames)
         w.writeheader()
         w.writerows(final)
@@ -234,25 +258,25 @@ def main() -> int:
     content_hash = hashlib.sha256(
         "\n".join(sorted(r["smiles"] for r in final)).encode()
     ).hexdigest()
-
     n_ref = sum(1 for r in final if r["is_reference"] == "true")
-    prov = f"""# Candidate set `{SET_ID}` — provenance
 
-- **set_id:** `{SET_ID}`
+    prov = f"""# Candidate set `{cfg.set_id}` — provenance
+
+- **set_id:** `{cfg.set_id}`
 - **content_sha256** (sorted canonical SMILES): `{content_hash}`
 - **size:** {len(final)} molecules ({len(final) - n_ref} sampled from ChEMBL + {n_ref} reference)
-- **file:** `backend/app/funnel/datasets/cox2_candidates_v1.csv`
-- **generated by:** `backend/app/funnel/build_candidate_set.py` (RNG seed `{RNG_SEED}`)
+- **file:** `backend/app/funnel/datasets/{out_csv.name}`
+- **generated by:** `backend/app/funnel/build_candidate_set.py --target {cfg.set_id.replace('_v1', '')}` (RNG seed `{RNG_SEED}`)
 
 ## Source
 
-`ml/datasets/target_identification/COX-2.csv` — a ChEMBL bioactivity export for
-target **CHEMBL230** (Cyclooxygenase-2, *Homo sapiens*), vendored in this repo
-(see `ml/README.md`). Public data. No molecules invented, no activity labels
-fabricated — ChEMBL `pChEMBL`, `Standard Type`, and `Comment` fields are carried
-through verbatim as metadata and used ONLY to stratify the sample.
+`ml/datasets/target_identification/{cfg.source_csv.name}` — a ChEMBL bioactivity
+export for target **{cfg.chembl_target}** ({cfg.target_name}, *Homo sapiens*),
+vendored in this repo (see `ml/README.md`). Public data. No molecules invented,
+no activity labels fabricated — ChEMBL `pChEMBL`, `Standard Type`, and `Comment`
+fields are carried through verbatim as metadata and used ONLY to stratify the sample.
 
-## Pipeline
+## Pipeline (identical to every other target set)
 
 1. Read {n_rows} activity rows.
 2. Drop rows with no SMILES: {n_no_smiles}.
@@ -264,11 +288,9 @@ through verbatim as metadata and used ONLY to stratify the sample.
 5. Deduplicate on canonical SMILES: {len(agg)} unique molecules remain.
 6. Bin by max pChEMBL across records: potent (>=7), moderate (5-7),
    weak_or_inactive (<5, or "Not Active" comment, or no pChEMBL).
-7. Deterministic shuffle (seed {RNG_SEED}) + take per bin:
-   {bin_counts}.
-8. Add the {n_ref} reference ligands (canonicalised). References bypass step 4
-   (ethanol is an intentional negative control). If a reference also occurs in
-   ChEMBL, its row is marked `is_reference=true` and keeps the ChEMBL id.
+7. Deterministic shuffle (seed {RNG_SEED}) + take per bin: {bin_counts}.
+8. Add the {n_ref} reference ligands (canonicalised). References bypass step 4.
+   If a reference also occurs in ChEMBL its row is marked `is_reference=true`.
 
 ## Columns
 
@@ -277,12 +299,19 @@ activity_pchembl_n, activity_types, activity_note, is_reference`
 
 `activity_*` are descriptive only. The evaluation does not use them.
 """
-    OUT_PROV.write_text(prov)
+    out_prov.write_text(prov)
 
-    print(f"\nwrote {OUT_CSV}  ({len(final)} molecules, {n_ref} reference)")
-    print(f"wrote {OUT_PROV}")
+    print(f"\nwrote {out_csv}  ({len(final)} molecules, {n_ref} reference)")
+    print(f"wrote {out_prov}")
     print(f"content_sha256 = {content_hash}")
     return 0
+
+
+def main() -> int:
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--target", choices=sorted(CONFIGS), default="cox2")
+    args = ap.parse_args()
+    return build(CONFIGS[args.target])
 
 
 if __name__ == "__main__":

@@ -59,7 +59,11 @@ TARGET_CONFIG: dict[str, dict[str, Any]] = {
     },
     "ace2": {
         "receptor": "ace2_receptor.pdbqt",
-        "center": [15.1, 22.5, 9.0],
+        # Centred on the catalytic Zn2+ (PDB 1R42: 53.141, 68.638, 31.204).
+        # FIXED 2026-08 — the previous [15.1, 22.5, 9.0] was ~70 A off the
+        # protein (0 receptor atoms in box); the Docking Studio's ace2 target
+        # returned meaningless numbers. Keep in sync with docking_worker.py.
+        "center": [53.1, 68.6, 31.2],
         "box_size": [20.0, 20.0, 20.0],
     },
 }

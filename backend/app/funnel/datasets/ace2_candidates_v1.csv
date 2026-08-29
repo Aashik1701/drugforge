@@ -1,0 +1,46 @@
+ligand_id,name,smiles,source,chembl_id,activity_pchembl_max,activity_pchembl_n,activity_types,activity_note,is_reference
+CHEMBL429844,ORE-1001,CC(C)C[C@H](N[C@@H](Cc1cncn1Cc1cc(Cl)cc(Cl)c1)C(=O)O)C(=O)O,reference+chembl,CHEMBL429844,9.36,5,IC50|Imax,,true
+REF_captopril,captopril,CC(CS)C(=O)N1CCC[C@H]1C(=O)O,reference,,,0,,,true
+REF_ethanol,ethanol,CCO,reference,,,0,,,true
+REF_lisinopril,lisinopril,NCCCC[C@H](N[C@@H](CCc1ccccc1)C(=O)O)C(=O)N1CCC[C@H]1C(=O)O,reference,,,0,,,true
+CHEMBL1201284,CINACALCET,C[C@@H](NCCCc1cccc(C(F)(F)F)c1)c1cccc2ccccc12,chembl_ace2_CHEMBL3736,CHEMBL1201284,4.55,1,IC50,,false
+CHEMBL1360563,HEMATEIN,O=C1C=C2CC3(O)COc4c(ccc(O)c4O)C3=C2C=C1O,chembl_ace2_CHEMBL3736,CHEMBL1360563,5.00,1,IC50,,false
+CHEMBL1535,HYDROXYCHLOROQUINE,CCN(CCO)CCCC(C)Nc1ccnc2cc(Cl)ccc12,chembl_ace2_CHEMBL3736,CHEMBL1535,6.14,1,IC50,,false
+CHEMBL163454,,O=C(N[C@@H](Cc1ccc(-c2ccccc2)cc1)C(=O)O)[C@H](S)Cc1ccccc1,chembl_ace2_CHEMBL3736,CHEMBL163454,5.85,1,Ki,,false
+CHEMBL251804,,CC[C@@H](C)[C@H](S)C(=O)N[C@@H](Cc1ccccc1Oc1ccccc1)C(=O)O,chembl_ace2_CHEMBL3736,CHEMBL251804,9.05,1,Ki,,false
+CHEMBL251808,,CC[C@@H](C)[C@H](S)C(=O)N[C@@H](Cc1ccc(OCc2ccc(F)c(F)c2)cc1)C(=O)O,chembl_ace2_CHEMBL3736,CHEMBL251808,9.07,1,Ki,,false
+CHEMBL251809,,CC[C@@H](C)[C@H](S)C(=O)N[C@@H](Cc1ccc(OCc2ccc(C(F)(F)F)cc2)cc1)C(=O)O,chembl_ace2_CHEMBL3736,CHEMBL251809,7.46,1,Ki,,false
+CHEMBL252417,,Cc1nnc(S/C(=C/c2ccc(-c3cc(Cl)ccc3C)o2)C(=O)O)[nH]1,chembl_ace2_CHEMBL3736,CHEMBL252417,4.21,1,IC50,,false
+CHEMBL253428,,CC[C@@H](C)[C@H](S)C(=O)N[C@@H](Cc1ccc2ccccc2c1)C(=O)O,chembl_ace2_CHEMBL3736,CHEMBL253428,8.62,1,Ki,,false
+CHEMBL258333,,O=C(CS)N[C@@H](Cc1ccc(-c2ccccc2)cc1)C(=O)O,chembl_ace2_CHEMBL3736,CHEMBL258333,6.50,1,Ki,,false
+CHEMBL260273,,CC(=O)N[C@@H](CC(C)C)C(=O)N1CCC[C@@H]1P(=O)(O)C[C@@H](Cc1ccccc1)C(=O)O,chembl_ace2_CHEMBL3736,CHEMBL260273,9.89,2,Ki,,false
+CHEMBL260677,,O=C(O)[C@H](Cc1ccccc1)CP(=O)(O)[C@H]1CCCN1C(=O)OCc1ccccc1,chembl_ace2_CHEMBL3736,CHEMBL260677,6.52,1,Ki,,false
+CHEMBL271224,,O=C(O)[C@H](Cc1ccc(-c2ccccc2)cc1)NC(=O)[C@@H](S)CC1CCCCC1,chembl_ace2_CHEMBL3736,CHEMBL271224,6.38,1,Ki,,false
+CHEMBL3640116,BI-1942,CC[C@H](CC(=O)O)n1c(=O)c2ncccc2n(Cc2cn(C)c3cc(C)cc(C)c23)c1=O,chembl_ace2_CHEMBL3736,CHEMBL3640116,,0,% Ctrl,Not Active,false
+CHEMBL400526,,CC[C@@H](C)[C@H](S)C(=O)N[C@@H](Cc1ccccc1)C(=O)O,chembl_ace2_CHEMBL3736,CHEMBL400526,8.82,1,Ki,,false
+CHEMBL400527,,CC[C@@H](C)[C@H](S)C(=O)N[C@@H](Cc1cccc2ccccc12)C(=O)O,chembl_ace2_CHEMBL3736,CHEMBL400527,8.66,1,Ki,,false
+CHEMBL401086,,CC[C@@H](C)[C@H](S)C(=O)NCC(=O)O,chembl_ace2_CHEMBL3736,CHEMBL401086,7.05,1,Ki,,false
+CHEMBL402987,,O=C(O)[C@H](Cc1ccc(-c2ccccc2)cc1)NC(=O)[C@@H](S)CCc1ccccc1,chembl_ace2_CHEMBL3736,CHEMBL402987,6.07,1,Ki,,false
+CHEMBL404044,,CC(C)(S)C(=O)N[C@@H](Cc1ccc(-c2ccccc2)cc1)C(=O)O,chembl_ace2_CHEMBL3736,CHEMBL404044,5.64,1,Ki,,false
+CHEMBL405913,,C[C@@H](N)P(=O)(O)C[C@@H](Cc1ccccc1)C(=O)O,chembl_ace2_CHEMBL3736,CHEMBL405913,,0,Ki,,false
+CHEMBL4080520,,CNC(=O)[C@@H](NC(=O)c1ccc(-c2ccc(CSc3nc4c(c(=O)[nH]3)CCC4)c(F)c2)o1)C(C)C,chembl_ace2_CHEMBL3736,CHEMBL4080520,,0,Inhibition,,false
+CHEMBL408448,,CC(=O)N[C@@H](Cc1c[nH]cn1)C(=O)N[C@H](CC(C)C)P(=O)(O)C[C@@H](Cc1ccccc1)C(=O)O,chembl_ace2_CHEMBL3736,CHEMBL408448,6.10,1,Ki,,false
+CHEMBL408705,,CC(=O)N[C@@H](CC(C)C)C(=O)N[C@H](Cc1ccccc1)P(=O)(O)C[C@@H](Cc1ccccc1)C(=O)O,chembl_ace2_CHEMBL3736,CHEMBL408705,6.04,1,Ki,,false
+CHEMBL409721,,CC(=O)N[C@@H](C)C(=O)N1CCC[C@@H]1P(=O)(O)C[C@@H](Cc1ccccc1)C(=O)O,chembl_ace2_CHEMBL3736,CHEMBL409721,8.12,1,Ki,,false
+CHEMBL410509,,CC(=O)N[C@@H](Cc1ccc(O)cc1)C(=O)N1CCC[C@@H]1P(=O)(O)C[C@@H](Cc1ccccc1)C(=O)O,chembl_ace2_CHEMBL3736,CHEMBL410509,8.28,1,Ki,,false
+CHEMBL411052,,CC(=O)N[C@H](C(=O)N1CCC[C@@H]1P(=O)(O)C[C@@H](Cc1ccccc1)C(=O)O)C(C)C,chembl_ace2_CHEMBL3736,CHEMBL411052,8.18,1,Ki,,false
+CHEMBL411298,,CC(C)C[C@H](CP(=O)(O)[C@H]1CCCN1C(=O)OCc1ccccc1)C(=O)O,chembl_ace2_CHEMBL3736,CHEMBL411298,6.52,1,Ki,,false
+CHEMBL411942,,CC(=O)N[C@@H](CCCCN)C(=O)N1CCC[C@@H]1P(=O)(O)C[C@@H](Cc1ccccc1)C(=O)O,chembl_ace2_CHEMBL3736,CHEMBL411942,8.19,1,Ki,,false
+CHEMBL4202767,,CCOc1c(Cl)cc(C(=O)Nc2ccc(C(=O)O)c(C)c2)cc1OC(C)C,chembl_ace2_CHEMBL3736,CHEMBL4202767,,0,Activity,,false
+CHEMBL4438924,,CC(C)[C@@H](NC(=O)[C@H](C)CS)B(O)O,chembl_ace2_CHEMBL3736,CHEMBL4438924,,0,Inhibition,Not Active,false
+CHEMBL4444926,,C[C@H](CS)C(=O)N[C@@H](B(O)O)c1ccc2ccccc2c1,chembl_ace2_CHEMBL3736,CHEMBL4444926,,0,Inhibition,Not Active,false
+CHEMBL4450628,,C[C@H](CS)C(=O)NCB(O)O,chembl_ace2_CHEMBL3736,CHEMBL4450628,,0,Inhibition,Not Active,false
+CHEMBL4451026,,O=C(N[C@@H](Cc1ccccc1)B(O)O)C(CS)Cc1ccccc1,chembl_ace2_CHEMBL3736,CHEMBL4451026,,0,Inhibition,,false
+CHEMBL4455145,,O=C(CCS)N[C@H](Cc1coc2ccccc12)B(O)O,chembl_ace2_CHEMBL3736,CHEMBL4455145,,0,Inhibition,Not Active,false
+CHEMBL4469059,,CC(C)C[C@H](NC(=O)[C@H](C)CS)B(O)O,chembl_ace2_CHEMBL3736,CHEMBL4469059,,0,Inhibition,Not Active,false
+CHEMBL5092803,,N[C@@H](Cc1c[nH]cn1)C(=O)NCc1cccc2ccccc12,chembl_ace2_CHEMBL3736,CHEMBL5092803,,0,Inhibition,Not Active,false
+CHEMBL5220314,,CC(C)C[C@@H](N[C@@H](Cc1cncn1Cc1cc(Cl)cc(Cl)c1)C(=O)O)C(=O)O,chembl_ace2_CHEMBL3736,CHEMBL5220314,8.90,1,IC50|Imax,,false
+CHEMBL5220968,,CC(C)CC(N[C@@H](Cc1cncn1Cc1cc(Cl)cc(Cl)c1)C(=O)O)C(=O)O,chembl_ace2_CHEMBL3736,CHEMBL5220968,8.50,1,IC50|Imax,,false
+CHEMBL5270769,,CN1CCN(c2ccc(CNC(=O)c3ccno3)cc2)CC1,chembl_ace2_CHEMBL3736,CHEMBL5270769,5.51,1,IC50,,false
+CHEMBL5276399,,COc1cc(OC(C)=O)cc2c1OC(C)(CCC1=C(C)CCCC1(C)C)C=C2,chembl_ace2_CHEMBL3736,CHEMBL5276399,4.20,1,IC50,,false
+CHEMBL5278408,,OC(COc1cccc(OCC(O)CN2CCCCC2)c1)CN1CCCCC1,chembl_ace2_CHEMBL3736,CHEMBL5278408,5.80,1,IC50,,false

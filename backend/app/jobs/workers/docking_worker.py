@@ -69,7 +69,13 @@ TARGET_CONFIG: dict[str, dict[str, Any]] = {
     },
     "ace2": {
         "receptor": "ace2_receptor.pdbqt",
-        "center": [15.1, 22.5, 9.0],
+        # Centred on the catalytic Zn2+ of ACE2 (PDB 1R42: 53.141, 68.638,
+        # 31.204) — standard practice for a metalloprotease. FIXED 2026-08:
+        # the previous centre [15.1, 22.5, 9.0] sat ~70 A outside the protein
+        # (0 receptor atoms in the box) and produced meaningless affinities for
+        # anyone using the Docking Studio's ace2 target. Sanity-checked: MLN-4760
+        # -6.0, lisinopril -5.8, captopril -4.4, ethanol -2.6 kcal/mol.
+        "center": [53.1, 68.6, 31.2],
         "box_size": [20.0, 20.0, 20.0],
     },
 }
