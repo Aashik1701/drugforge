@@ -288,3 +288,50 @@ box, ex=8, --cpu 1, seeds [1,42,2024,31337], RunRecord v1.0.0 →
 affinities bit-identically (captopril −4.393, identical per-seed).
 
 NOT evaluated against the selected policy this pass — held out.
+
+---
+
+# Pass 4
+
+## Task 0 — PRE-REGISTERED prediction for the held-out ACE2 evaluation (2026-08-29)
+
+Written and committed BEFORE scoring the selected policy against
+`runs/baseline_ace2_v1.json`. The selected policy (`v7_binding_weak_cox2`) is
+frozen; it was chosen only on `cox2_v1`; `baseline_ace2_v1.json` has not been
+used for any selection or tuning and will not be.
+
+**Prediction: held-out recall on ace2_v1 will likely be LOWER than on cox2_v1,
+for reasons intrinsic to the target and the candidate set — not the policy.**
+
+1. **Vina does not model Zn²⁺ coordination.** ACE2 is a zinc metalloprotease;
+   its inhibitors chelate the catalytic Zn. Vina scores this pocket with a
+   generic force field, so the dynamic range is compressed — the Task-2 sanity
+   check put MLN-4760 (Ki ~0.44 nM) at only −6.0 kcal/mol, ~2 kcal/mol from a
+   non-binder. A compressed baseline spread means small prescreen errors flip
+   more rank positions, so recall@k is mechanically harder to hit.
+2. **`ace2_v1` is chemotype-narrow.** 122 unique molecules from ChEMBL, heavily
+   one scaffold family (Phe-Pro dipeptide mimics with thiol / phosphinic /
+   boronic warheads). The `binding_score` and `cox2` models were trained on
+   broad, mostly non-peptidic data; on a narrow peptidomimetic set their
+   ranking signal is expected to be weaker and less differentiated than on the
+   diverse `cox2_v1` (8105 unique).
+3. Corollary: a drop is expected to reflect (1)+(2), NOT a defect in the funnel
+   mechanics, the ranking function, or the v7 policy. The cox2 finding —
+   "recall@5 ceiling is the models, not the prescreen formula" — is expected to
+   hold or strengthen on ace2.
+
+**Falsifiable expectations, in order of confidence:**
+- literal recall@5 on ace2 ≤ literal recall@5 on cox2 (which is 1/5 at N=10).
+- tie-credited recall@5 on ace2 < 4/5 at N=10 (the cox2 value).
+- 0 hard false negatives (the drug-likeness/tox filter should not be the cause
+  of any miss — as on cox2).
+- If recall is *higher* on ace2, that would be a surprise and I would want to
+  understand why before trusting it.
+
+**Disclosure:** while diagnosing an infrastructure failure in the first ACE2
+baseline run (a `time.time()`-based poll deadline that a laptop sleep blew,
+producing spurious FAILED docks — now fixed to `time.monotonic()`), roughly ten
+individual raw ACE2 affinity values were visible in a log tail. No ranking,
+recall, or policy comparison was computed from them; that first run is being
+discarded and re-docked clean. This pre-registration and its commit precede any
+evaluation of the clean artifact.

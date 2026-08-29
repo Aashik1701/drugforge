@@ -162,7 +162,13 @@ async def _dock_one(smiles: str, target: str, exhaustiveness: int, seed: int,
         return SeedDock(seed, None, time.perf_counter() - t0, "rejected",
                         "ComputeRejected for 60 attempts")
 
-    deadline = time.time() + poll_timeout
+    # Deadline on MONOTONIC time, not wall-clock: time.time() keeps advancing
+    # while a laptop is asleep, so an overnight suspend used to blow the timeout
+    # and mark a job "timeout" even though the worker had no real time to run it
+    # (and in fact completed it fine on wake). perf_counter()/monotonic() pause
+    # during sleep, which is the semantics we want — "how long has the worker
+    # actually had?".
+    deadline = time.monotonic() + poll_timeout
     while True:
         job = await job_store.get_job(job_id)
         if job and job.status.value in ("completed", "failed", "cancelled"):
@@ -171,9 +177,9 @@ async def _dock_one(smiles: str, target: str, exhaustiveness: int, seed: int,
                 aff = (job.output or {}).get("affinity_kcal_mol")
                 return SeedDock(seed, float(aff) if aff is not None else None, wall, "completed")
             return SeedDock(seed, None, wall, job.status.value, job.error)
-        if time.time() > deadline:
+        if time.monotonic() > deadline:
             return SeedDock(seed, None, time.perf_counter() - t0, "timeout",
-                            f"no terminal state in {poll_timeout}s")
+                            f"no terminal state in {poll_timeout}s of active runtime")
         await asyncio.sleep(2)
 
 
