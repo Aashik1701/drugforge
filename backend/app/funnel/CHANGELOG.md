@@ -878,3 +878,230 @@ after seeing results. No surrogate hyperparameters tuned against recall (Pass
 ComputeRouter / ResourceManager / JobStore / tool-registry unchanged.
 `funnel/seed_diversity.py` and `funnel/concentration_check.py` are additive
 and offline. ace2 data not read.
+
+---
+
+# Pass 8 — fix the measurement, not the policy: is recall@10 less degenerate? (2026-08-29)
+
+Four passes of policy work are closed (P4-P7 below use this pass's own
+shorthand: the 8-variant ranker sweep, the Pass-5 surrogate, the Pass-6
+two-phase policy, the Pass-7 seed-diversity strategies). This pass adds no
+policy, no surrogate, no seed strategy. It re-reads what already exists under
+a second metric and asks whether recall@5 was the wrong ruler.
+
+**Method:** `funnel/measurement_recall10.py` recomputes the full per-molecule
+docking ORDER for all 34 Pass 4-7 policies from the exact same frozen,
+deterministic functions already executed (`prescreen_order`, Pass-5's `rf`
+surrogate via `fit_phase2`/`phase2_order`, the Pass-6 control seed strategy,
+the four Pass-7 strategies) — needed only to recover *which* target molecule
+arrives last, a detail the committed aggregate CSVs don't carry per-molecule.
+**Every recomputed recall@5 and recall@10 value was asserted equal to the
+already-published figure in its corresponding committed artifact — all 34
+checks passed.** This is a re-read of existing results, not a re-run of new
+ones; nothing here changes any number already published.
+
+## The one flip, stated first
+
+**Pass 7's single nominal "win" over the Pass-5 reference does not survive
+under recall@10, confirming it was noise, not a finding.**
+`maxmin_diversity` at S=5 reached the Pass-5 LOO surrogate's recall@5
+milestone one N early (N=20 vs N=21) — flagged in Pass 7 as "read this as
+noise, not a finding" on multiple-comparisons grounds. Under recall@10 that
+same cell needs **N=29** against the reference's **N=21** — a clear loss, not
+a marginal win. No cell across all 24 Pass-7 (strategy, S) combinations comes
+within 5 of the recall@10 reference (closest: `control_v7_topS` S=16 and
+`stratified_v7_score` S=10, both N=26-27). The recall@5 "win" was exactly the
+kind of artifact it was called out as; recall@10 removes the ambiguity rather
+than reversing the verdict.
+
+None of P4, P5, or P6's headline conclusions flip (all detailed below).
+
+## Task 1 — concentration under recall@10
+
+| | recall@5 | recall@10 |
+|---|---|---|
+| dominant straggler | CHEMBL2315019 | CHEMBL2315019 |
+| policies (of 34) determined by it | **18 (53%)** | **10 (29%)** |
+| distinct molecules that are ever the straggler | 1 (by construction — only one target) | **9 of 10** true-top-10 members |
+| 2nd-most-common straggler | n/a | CHEMBL6 (baseline #9, weakest of the ten) in 7/34 (21%) |
+
+Full distribution (`runs/measurement_recall10_cox2_v1.json`): CHEMBL2315019
+10, CHEMBL6 7, CHEMBL149781 4, CHEMBL327900 3, CHEMBL34913 3, CHEMBL1956384 3,
+CHEMBL111786 2, CHEMBL111518 1, CHEMBL184613 1. (CHEMBL76692, baseline #5 of
+the top-10 set, is never the final straggler across all 34 policies — it is
+always found before nine other members, in every policy tested.)
+
+**recall@10 is less concentrated, clearly — nearly half the coincidence rate
+(29% vs 53%), and the failure is spread across 9 different molecules instead
+of being almost entirely one.** It is not *non*-degenerate: CHEMBL2315019 is
+still the single most common straggler, at a rate (29%) well above the 10%
+a uniform draw over ten target molecules would predict — it is still the
+hardest of the ten to rank, just not the *only* thing the metric measures
+anymore.
+
+**Gap distribution** (N at 10/10 minus N at 9/10 — how many extra docks the
+last mile costs), n=34: min=1, p25=1, median=**3**, p75=4, max=16. Tight and
+right-skewed with a short tail — most policies close the last slot within a
+few docks of the ninth, unlike recall@5's single-molecule cliff-edge behaviour
+documented in Pass 7 (`maxmin_diversity` gaps up to 23).
+
+**Does recall@10 still discriminate between policies?** Yes — checked
+separately, since a metric identical for every policy would be as useless as
+a degenerate one. Completion-N spread: recall@5 min=20 max=40 (std 5.3);
+recall@10 min=21 max=40 (std 5.0). Essentially the same spread. Fixing the
+concentration problem did not flatten the metric.
+
+## Task 2 — re-read of all four conclusions
+
+**P4 (8-variant ranker sweep, Pass 2, N=5 fixed budget — the only recall@10
+figures that pass produced; no full frontier exists per non-v7 variant, so
+this is the already-published snapshot, not a re-derived milestone):**
+
+| variant | recall@5 lit | recall@10 lit |
+|---|---:|---:|
+| v1_original | 1/5 | 5/10 |
+| v2_binding_only | 1/5 | 4/10 |
+| v3_binding_only_tox_filter | 1/5 | 4/10 |
+| v4_descriptor_heuristic | 1/5 | 3/10 |
+| v5_binding_desc_blend | 1/5 | 4/10 |
+| v6_ligand_efficiency | 0/5 | **1/10** |
+| v7_binding_weak_cox2 | 1/5 | 5/10 |
+| v8_binding_only_no_filter | 1/5 | 4/10 |
+
+**Not flat.** recall@5 was flat at 1/5 for 7 of 8 variants (only v6 stood
+out); recall@10 ranges 1/10 to 5/10 and clearly separates v6 (a genuine loser,
+already known) from the rest, *and* separates v4 (physicochemistry-only, 3/10)
+from v1/v7 (5/10) — a distinction recall@5 could not make. Pass 2's own text
+already flagged this ("only recall@10 catches [CHEMBL111786]") without
+naming it as a metric property; this pass makes it explicit. Not a flip of
+Pass 2's conclusion (which was specifically about recall@5), but the clearest
+evidence in this whole investigation that recall@10 was already the more
+informative number, sitting unused in a table three passes ago.
+
+**P5 (surrogate vs. frozen v7):** holds, margin unchanged in direction.
+v7 N=36 at recall@10 (vs N=32 at recall@5). Surrogates: ridge N=25 (1.44x),
+rf N=21 (1.71x), krr N=26 (1.38x). All three still clearly beat v7, by a
+similar or slightly larger multiple than under recall@5 (ridge/rf/krr were
+1.6x/1.5x/1.2x at recall@5). **No flip.**
+
+**P6 (two-phase vs. Pass-5 LOO surrogate):** holds. Best two-phase cell under
+recall@10 is control S=16 at N=26 — same S as the recall@5 best cell, same
+N — against the surrogate reference's N=21. Two-phase still loses by the same
+~1.2x margin. **No flip.**
+
+| S | two-phase N@5/5 | two-phase N@10/10 |
+|---:|---:|---:|
+| 5  | 33 | 39 |
+| 8  | 39 | 39 |
+| 10 | 40 | 40 |
+| 13 | 28 | 33 |
+| 16 | 26 | 26 |
+| 20 | 30 | 30 |
+
+**P7 (does any seed strategy beat the reference, stably across S):** does
+**not** hold — see "the one flip" above. Under recall@10, nothing beats N=21;
+the nearest approach is 5 N away (control S=16, stratified S=10, both 26-27),
+and neither is part of a monotonic or stable trend across neighbouring S
+(control: 39,39,40,33,**26**,30; stratified: 28,28,**27**,30,34,33 — both
+noisy, not smoothly improving toward their best S). **The recall@5 "win" is
+gone; the recall@10 read is unambiguous: seed selection does not close the
+gap to the reference at S<=20, under either metric.**
+
+## Task 3 — primary metric, and the rule
+
+**Rule:** prefer the recall level whose completion event is attributable to a
+single molecule in the smallest fraction of policies — *provided* its
+completion-N still varies meaningfully across policies. A metric that is
+non-degenerate in the concentration sense but identical for every policy
+(no spread) would be equally useless for telling policies apart; both
+properties are checked, not just the one Pass 7 flagged.
+
+**recall@10 (literal) passes both checks better than recall@5:** less
+concentrated (29% vs 53% coincidence with one molecule, failure spread across
+9 distinct molecules instead of 1) and equally discriminating (completion-N
+std 5.0 vs 5.3, same order of magnitude, not flattened).
+
+**Recommendation: recall@10 literal becomes the primary metric for future
+policy comparisons in this project.** recall@5 remains reported alongside it
+— it is the more intuitive, more commonly cited number, and every conclusion
+re-checked in this pass held its direction under both metrics anyway (only
+the one already-flagged-as-noise cell changed). **No published recall@5
+number is retracted or edited by this pass.** The data does not change; which
+number gets called "the headline" does.
+
+Caveat, stated plainly: recall@10 is *less* degenerate, not *non*-degenerate.
+CHEMBL2315019 is still the single most common straggler (29%, versus the 10%
+a uniform draw over ten targets would give), and Task 5 of the previous pass
+already showed docking-hard outliers are a real, unresolved cox2_v1 property.
+Switching the primary metric mitigates the measurement problem; it does not
+fix the underlying one, which is what Task 4 (below) scopes a fix for.
+
+## Task 4 — scoping a bigger candidate set (not built this pass)
+
+**Cost, projected from `runs/baseline_cox2_v1.json`'s own per-candidate
+wall-clock** (45 candidates, 4 seeds each, identical exhaustiveness/seed/cpu
+config the whole project has used): mean 158.54s per candidate (4 docks),
+39.63s per single Vina job. `total_run_wall_s` (7141.07s) is within 7s of
+`total_docking_wall_s` (7134.23s) — the reference run was effectively serial,
+so linear scaling from the observed mean is realistic, not optimistic.
+
+| candidate-set size | Vina jobs (x4 seeds) | projected dock wall-clock |
+|---:|---:|---:|
+| 45 (current) | 180 | 7134s (~2.0 h) — actual |
+| 100 | 400 | ~15,854s (**~4.4 h**) |
+| 150 | 600 | ~23,781s (**~6.6 h**) |
+
+**Tooling change required: close to zero, confirmed.** Grepped
+`baseline.py`, `funnel.py`, `evaluate.py`, `sweep.py`, `frontier.py` for a
+hardcoded candidate count — none exists; every one of them derives its loop
+bound from the loaded candidate set. The only production-code change needed
+is bumping the `per_bin` counts in `build_candidate_set.CONFIGS["cox2"]`
+(currently 12/11/11 = 34 stratified + 11 fixed references = 45; e.g.
+~30/30/29 + 11 = 100, ~47/46/46 + 11 = 150). The raw ChEMBL source
+(`ml/datasets/target_identification/COX-2.csv`) has ~14,000 rows — no
+data-availability ceiling anywhere near 100-150 after the existing
+MW/heavy-atom set-construction filter. **Caveat, self-inflicted, not part of
+"the harness":** this pass's own analysis scripts (`surrogate.py`,
+`two_phase.py`, `seed_diversity.py`, `concentration_check.py`,
+`measurement_recall10.py`) hardcode `== 45` / `SURVIVOR_CAP = 41` as
+integrity-check constants for cox2_v1 specifically; a bigger set would need
+those bumped (one line each) or re-derived from the loaded candidate set. Not
+a harness limitation — a byproduct of writing tight assertions against a
+known-size set in Passes 5-8.
+
+**Recommendation: not yet — finish ACE2 first.** The held-out ACE2 baseline
+(pre-registered, `funnel/CHANGELOG.md` Pass 4) is still unrun, blocked twice
+by host disk exhaustion (STATUS.md, Pass 4 disclosure), and is a standing,
+already-committed obligation with a written prediction on record — smaller in
+scope (~2-3h, 180 jobs) than either candidate-set expansion considered here.
+A 150-candidate cox2 rebuild is 600 jobs, more than 3x the job count of the
+ACE2 run that has already failed twice on disk space, on the same single
+machine. Both compete for the same docking hours; running the larger,
+riskier, purely-exploratory job first while a smaller, already-promised one
+sits blocked is the wrong order. Recommend: verify free disk headroom
+explicitly, finish ACE2, *then* revisit whether a bigger cox2_v1 candidate set
+is worth ~4.4-6.6 h against whatever ACE2 turns up — the ACE2 result may
+itself change how urgent the concentration problem looks (Pass 4's own
+falsifiable prediction was that ACE2 recall would be *lower* than cox2's,
+which would mean ACE2 has the same concentration problem or worse, in which
+case a single bigger cox2 set fixes only one of the two evaluations).
+
+## Summary
+
+recall@10 literal is confirmed less degenerate than recall@5 (29% vs 53%
+one-molecule concentration, failure spread across 9 of 10 target molecules
+instead of 1) without losing discriminative power (comparable completion-N
+spread), and is adopted as the primary metric going forward — recall@5 stays
+published, unedited, as a secondary number. Re-checking all four prior policy
+conclusions under recall@10 confirms three exactly and reverses the fourth's
+only nominal exception (Pass 7's single-cell "win," already flagged as likely
+noise, is a clear loss under recall@10) — no conclusion about frozen v7,
+the Pass-5 surrogate, or the two-phase policy's shortfall changes. A bigger
+candidate set is scoped (~4.4h at 100, ~6.6h at 150 candidates; near-zero
+harness changes) but not built, and is recommended to wait behind finishing
+the already-committed, smaller, twice-failed ACE2 baseline. No new docking,
+no new policy, surrogate, or seed strategy this pass. Frozen contracts
+untouched: v7 policy, docking params, ComputeRouter / ResourceManager /
+JobStore / tool-registry unchanged. `funnel/measurement_recall10.py` is
+additive, offline, and re-derives nothing that changes a previously published
+number. ace2 data not read.
