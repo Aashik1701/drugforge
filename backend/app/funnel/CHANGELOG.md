@@ -1105,3 +1105,183 @@ untouched: v7 policy, docking params, ComputeRouter / ResourceManager /
 JobStore / tool-registry unchanged. `funnel/measurement_recall10.py` is
 additive, offline, and re-derives nothing that changes a previously published
 number. ace2 data not read.
+
+---
+
+# Pass 9 -- held-out ACE2 baseline: run it, score the frozen policy, test the prediction (2026-08-30)
+
+The `ace2_v1` baseline (pre-registered Pass 4, blocked twice by disk exhaustion)
+finally ran clean: 43 GB free, `caffeinate -i`, output to a file, corrected
+Zn-centred box, docking config identical to cox2 (ex=8, --cpu 1,
+seeds [1,42,2024,31337], conformer seed 42). `runs/baseline_ace2_v1.json`,
+180 jobs, 9322 s (2.6 h). Scored ONCE against the UNCHANGED frozen v7 policy.
+No tuning, no new policy/surrogate/seed strategy. `funnel/heldout_ace2.py`
+(additive, offline) and its numbers cross-check zero-mismatch against
+`funnel.frontier --set ace2_v1`.
+
+## Task 3 -- run sanity
+
+**39/45 completed. 6 failed, all boronic acids** (`...B(O)O` warhead:
+CHEMBL4438924, 4444926, 4450628, 4451026, 4455145, 4469059). Deterministic:
+`PDBQT parsing error: Atom type B is not a valid AutoDock type` -- Vina has no
+boron parameters; every seed fails identically in ~0.05 s at the Vina parse
+step. Not a run defect, a method boundary. Re-docking is futile and was not
+done. **The held-out set is effectively 39, not 45**, and the excluded 6 are
+one chemotype.
+
+**Reference ligands reproduce the Pass-3 box-fix sanity docks:**
+
+| ligand | this run | box-fix | delta | sd(now) |
+|---|---:|---:|---:|---:|
+| MLN-4760 / ORE-1001 (CHEMBL429844) | -6.321 | -6.00 | -0.32 | 0.081 |
+| lisinopril | -5.796 | -5.80 | +0.00 | 0.253 |
+| captopril | -4.393 | -4.39 | -0.00 | 0.020 |
+| ethanol | -2.647 | -2.65 | +0.00 | 0.002 |
+
+Potency order preserved exactly (MLN-4760 > lisinopril > captopril > ethanol);
+3 of 4 affinities bit-close; MLN-4760 off by 0.32 (largest, most flexible of the
+four; box-fix reported it at sd 0.36, so within ~1 sigma). The box discriminates.
+Run is sound.
+
+**Seed noise -- ACE2 is ~3x noisier than cox2:**
+
+| set | n | median seed sd | mean | p90 | max | frac > TIE_EPSILON(0.10) |
+|---|---:|---:|---:|---:|---:|---:|
+| cox2_v1 | 45 | 0.036 | 0.072 | 0.142 | 0.440 | 11/45 |
+| ace2_v1 | 39 | **0.110** | 0.151 | 0.306 | 0.681 | **22/39** |
+
+**TIE_EPSILON = 0.10 sits BELOW the ACE2 median seed-noise floor** (on cox2 it
+was ~3x above). The frozen tie-grouping is therefore too tight for ACE2: pairs
+0.10-0.22 kcal/mol apart get distinct ranks when the docking cannot actually
+resolve them. Literal recall understates on ACE2; tie-credited is the more
+honest read here. The constant was calibrated on cox2 and does not transfer.
+**Not fixed this pass** -- flagged for a decision, since changing it is a
+measurement change to a held-out result.
+
+## Task 1 -- held-out evaluation, frozen v7, one pass
+
+- Hard filter: 38/45 survive, **0 false negatives** (no baseline top-5 or
+  top-10 molecule dropped by the filter -- prediction held).
+- 5 of the 6 boronic acids pass the filter and occupy prescreen ranks 28-33:
+  in a real funnel run those docking slots are wasted (the jobs error out).
+
+**First N to reach each recall level -- ACE2 held-out vs cox2 reference:**
+
+| metric | ACE2 | cox2 |
+|---|---:|---:|
+| recall@10 literal = 10/10 (PRIMARY) | N=35 | N=36 |
+| recall@10 literal = 8/10 | N=25 | N=30 |
+| recall@10 literal = 5/10 | N=15 | N=10 |
+| recall@10 tie-credited = 10/10 | **N=24** | N=32 |
+| recall@5 literal = 5/5 (secondary) | N=30 | N=32 |
+| recall@5 literal = 2/5 | N=13 | N=10 |
+| recall@5 literal = 1/5 | N=1 | N=4 |
+| recall@5 tie-credited = 5/5 | N=24 | N=32 |
+
+Mean baseline rank of v7's top-10 prescreen picks: ACE2 **20.4** vs cox2 ~12.6.
+Speedup at recall@10 10/10: ACE2 1.3x (N=35 of 38 survivors), cox2 1.3x (N=36).
+
+## Did the pre-registered prediction hold?
+
+Pass 4 predicted: **held-out recall on ace2_v1 LOWER than cox2, for
+target-intrinsic reasons (Vina ignores the catalytic Zn; narrow chemotype),
+not a policy defect.** Falsifiable expectations:
+
+1. `literal recall@5 ace2 <= literal recall@5 cox2` -- **HELD.** At N=10, ACE2
+   1/5 vs cox2 2/5 (Pass 4's "1/5 at N=10" for cox2 is stale; the committed
+   frontier is 2/5). ACE2 is lower everywhere on recall@5 through N=24.
+2. `tie-credited recall@5 ace2 < 4/5 at N=10` -- **HELD** (ACE2 is 1/5 at N=10).
+3. `0 hard false negatives` -- **HELD exactly** (top-5 and top-10).
+4. `the cox2 "ceiling is the models, not the formula" holds or strengthens` --
+   **HELD and strengthened** (Task 2).
+
+**But the framing was recall@5-era. Under Pass 8's primary metric (recall@10
+literal, full recovery) the prediction is roughly a WASH:** ACE2 N=35 vs
+cox2 N=36, and ACE2 *beats* cox2 on tie-credited recall@10 (N=24 vs N=32). And
+ACE2's curve shape is the opposite of "uniformly lower": it hits 1/5 and 1/10
+at **N=1** (cox2 needs N=3-4) because CHEMBL4080520, ACE2 baseline #1, is
+prescreen rank #1 -- the single best cheap-model call in either evaluation.
+**Fast start, weak middle, converges at the tail.** Verdict: prediction correct
+on the metric it was written for and on the early/middle curve; not lower on the
+current primary metric at full recovery.
+
+## Task 2 -- is ace2_v1 degenerate the same way cox2_v1 is?
+
+(Single frozen policy only -- ACE2 has no 34-policy grid; forbidden from making
+non-frozen policies for the hold-out.)
+
+**Prescreen ranks of the baseline top-10 under frozen v7:** `[1, 7, 12, 13, 15,
+22, 24, 25, 30, 35]` of 38 survivors, **median 18**. The whole top-10 is
+scattered through the back half of the prescreen order.
+
+- **cox2_v1**: tractable set + ONE out-of-distribution outlier (CHEMBL2315019)
+  that drives 53% of recall@5 across 34 policies; the other four top-5 are easy.
+- **ace2_v1**: **NO single dominant straggler.** Worst is CHEMBL163454
+  (baseline #7) at prescreen #35, but the gap to 2nd-worst is only 5, and FOUR
+  baseline-top-10 members sit at prescreen rank >= 24. Last two top-10 members
+  recovered at N=30 and N=35 (5-dock final gap, like cox2's recall@10 gap
+  median of 3). The problem is not "detect one molecule" -- it is "the cheap
+  `binding_score` model has almost no rank signal on this Phe-Pro/thiol/
+  phosphinic/boronic chemotype."
+
+**recall@10 vs recall@5 concentration on ACE2:** both are diffusely hard.
+recall@5 5/5 at N=30, recall@10 10/10 at N=35 -- 5 extra docks for double the
+targets. recall@10 is NOT meaningfully less concentrated here, because there is
+no outlier to dilute. **Pass 8's "recall@10 is less degenerate" is a
+cox2-specific property** (it dilutes cox2's lone outlier); it does not
+generalise to a set whose difficulty is already spread out.
+
+**ACE2 analogue of CHEMBL2315019 -- there are THREE, not one:**
+
+| baseline # | ligand | aff | prescreen # | binding_score | P(ace2) | P(cox2) |
+|---:|---|---:|---:|---:|---:|---:|
+| 1 | CHEMBL4080520 | -7.79 | 1 | 7.12 | 0.13 | 0.42 |
+| 2 | CHEMBL402987 | -7.40 | 30 | 5.36 | 0.39 | 0.32 |
+| 3 | CHEMBL252417 | -7.13 | 24 | 5.52 | 0.08 | 0.45 |
+| 5 | CHEMBL400527 | -6.96 | 22 | 5.65 | 0.93 | 0.23 |
+
+Baseline #2, #3, #5 all dock -6.96 to -7.40 but carry mid-pack `binding_score`
+(~5.4-5.7) and sit at prescreen 22-30. The one visible top docker (#1) has the
+highest `binding_score` in the set (7.12) and is the only reason ACE2's early
+curve looks good. `P(ace2)` is anti-informative: 0.93 for baseline #4/#5, but
+0.08-0.39 for #1/#2/#3 -- the ACE2 activity model and the docking disagree
+completely on this set.
+
+## General read: set-specific or general?
+
+**Benchmark degeneracy is a general property of 45-molecule screening sets, not
+a cox2 artifact -- but it manifests differently by set composition.** A diverse
+set (cox2, 8105 unique in the source) concentrates its hardness in a few
+out-of-distribution outliers; a narrow set (ace2, 122 unique, one scaffold
+family) spreads thin, near-zero cheap-model signal across the whole top-k, and
+additionally loses 13% of itself to un-dockable chemistry.
+
+**A 100-molecule cox2 expansion fixes cox2's version** (the outlier gains
+neighbours; 5-10 hard molecules instead of 1 dilutes the coincidence rate;
+Pass 8 scoped it at ~4.4 h and near-zero tooling change). **It would not fix
+ace2's version**, which is a feature-signal problem, not a sample-size problem.
+Recommendation stands: the cox2 expansion is worth doing, understood as
+metric-hygiene for cox2 policy comparisons -- not a general fix, and ACE2 just
+demonstrated why.
+
+## Unanticipated
+
+1. 6/45 un-dockable (boronic acids); effective held-out set is 39. Not in the
+   pre-registration; changes the denominator.
+2. ACE2 docking 3x noisier; TIE_EPSILON (0.10) no longer clears the seed-noise
+   floor. Calibrated on one target, does not transfer.
+3. Under the current primary metric the "lower recall" prediction is a wash at
+   full recovery, and ACE2 *wins* on tie-credited recall@10.
+4. ACE2's curve is fast-start / slow-middle / converging, driven entirely by
+   CHEMBL4080520 being prescreen #1 -- not "uniformly lower."
+5. `P(ace2)` is anti-informative for docking rank on its own target's set.
+
+**No policy change made or recommended** -- v7 behaved as predicted. Two
+MEASUREMENT issues (TIE_EPSILON transfer; handling of the 6 un-dockable
+molecules) are flagged for a decision before this becomes a published held-out
+number; neither was acted on. Frozen contracts untouched: v7 policy, docking
+params, ComputeRouter / ResourceManager / JobStore / tool-registry unchanged.
+ace2 baseline used once, as intended. `funnel/heldout_ace2.py` is additive and
+offline. Artifacts: `runs/baseline_ace2_v1.json`, `runs/features_ace2_v1.json`,
+`runs/frontier_ace2_v1.{csv,svg}`, `runs/frontier_ace2_v1_heldout.csv`,
+`runs/heldout_ace2_v1.json`, `runs/frontier_ace2_vs_cox2_pass9.svg`.
