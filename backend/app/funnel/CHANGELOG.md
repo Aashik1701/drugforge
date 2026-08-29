@@ -393,3 +393,288 @@ user data, not touchable). Two things could not complete:
 
 Not a code or guide defect — a machine-state blocker. Stated plainly rather
 than worked around by deleting the user's data.
+
+---
+
+# Pass 5 — surrogate ranker trained on real docking scores (2026-08-29)
+
+## Question
+
+Does a regressor trained on this target's own real Vina mean-affinities beat the
+frozen v7 prescreen? Offline, against `runs/baseline_cox2_v1.json`, no new
+docking. Established prior: recall@5 is flat at 1/5 literal across all 8 policy
+variants; the stated read was "the ceiling is the models, not the ranking
+formula."
+
+## Setup (`funnel/surrogate.py`, additive + offline)
+
+- **Label:** mean best-affinity over 4 seeds, from `baseline_cox2_v1.json`
+  (45 molecules, no failed docks).
+- **Features:** ECFP4 Morgan fingerprint (radius 2, 1024 bits — identical to
+  `utils/rdkit_helper.extract_features` and
+  `ml/training/train_all_models.smiles_to_fingerprint`) concatenated with the 10
+  RDKit descriptors already cached in `runs/features_cox2_v1.json`. 1034
+  features, n = 45. No new featurisation.
+- **CV:** leave-one-out, 45 folds. Every molecule's predicted affinity comes
+  from a model refit on the other 44; scaler / kernel refit inside each fold.
+  The fit-on-everything number is reported only as a leaked upper bound.
+- **3 variants, fixed hyper-parameters, no grid search:** `ridge`
+  (StandardScaler + Ridge alpha=10), `rf` (RandomForestRegressor, 300 trees,
+  seed 0), `krr_tanimoto` (KernelRidge alpha=1 on a Tanimoto Gram matrix of the
+  fingerprint bits).
+- **Primary chosen by LOO affinity Spearman, before any recall number was
+  looked at.** Ranker = sort ascending on predicted affinity. Scored with the
+  existing recall@5 / recall@10 / frontier logic, over the same 41 v7
+  hard-filter survivors as `runs/frontier_cox2_v1.csv`.
+
+## Affinity regression (leave-one-out)
+
+| variant | R2 | MAE | RMSE | Spearman rho | Pearson r |
+|---|---:|---:|---:|---:|---:|
+| ridge | 0.337 | 0.456 | 0.649 | 0.607 | 0.584 |
+| **rf** (primary) | **0.401** | **0.440** | **0.617** | **0.679** | 0.665 |
+| krr_tanimoto | -2.738 | 1.329 | 1.541 | 0.482 | 0.581 |
+
+Small-n caveat: 45 points, 1034 features, LOO — intervals are wide. Read
+R2 ~ 0.34-0.40, rho ~ 0.6-0.68 as "modest but real signal for docking score"
+(the prescreen models were not even trying to predict this quantity), not a
+calibrated model. `krr_tanimoto` is a genuine loser: the Tanimoto neighbourhood
+over 44 points is too sparse and alpha=1 too weak; kept as a logged negative.
+
+Leaked upper bound (fit on all 45, predict all 45): ridge in-sample R2 = 0.999,
+recall@5 = 5/5 — pure memorisation of 1034 features over 45 rows. This is why
+LOO is mandatory; it is not a result.
+
+## CHEMBL2315019 — the named failure mode (headline)
+
+Baseline #1, true -7.56 kcal/mol (a 0.75 kcal/mol outlier above #2).
+
+| variant | LOO predicted affinity | rank / 41 survivors | first docked at N |
+|---|---:|---:|---:|
+| ridge | -5.96 | 15 | 15 |
+| rf | -5.89 | 18 | 18 |
+| krr_tanimoto | -4.29 | 26 | 26 |
+
+**The surrogate does not surface it.** Every variant under-predicts it by
+1.6-3.3 kcal/mol and ranks it 15th-26th; it is never in a surrogate top-5. It is
+the one molecule in the set with no close structural analogue (a
+naproxen-acridone hybrid) and an outlier label, so a LOO model has nothing to
+interpolate from and shrinks it toward the set mean.
+
+## Frontier: frozen v7 vs surrogate (rf primary), recall literal, over the 41 survivors
+
+| milestone | v7: first N | surrogate: first N |
+|---|---:|---:|
+| recall@5 = 1/5 | 4 | 6 |
+| recall@5 = 2/5 | 10 | 12 |
+| recall@5 = 3/5 | 14 | 13 |
+| recall@5 = 4/5 | 30 | 18 |
+| **recall@5 = 5/5** | **32** | **21** |
+| recall@10 = 8/10 | 30 | 18 |
+| **recall@10 = 10/10** | **36** | **21** |
+
+Strict cut (N=5): v7 = 1/5 literal (2/5 tie-credited); surrogate-rf = **0/5**
+literal (0/5 tie); surrogate-ridge = 1/5 literal (2/5 tie), matching v7. Below
+N ~ 13 the surrogate is level with or behind v7. From N ~ 13 up it pulls clearly
+ahead: full top-5 recovery at N=21 (2.3x saving) vs v7's N=32 (1.6x), and full
+top-10 recovery at N=21 vs v7's N=36. Ridge gives the same shape (5/5 at N=20) —
+not a one-model artefact.
+
+Artifacts: `runs/surrogate_cox2_v1.json`, `runs/frontier_surrogate_cox2_v1.csv`,
+`runs/frontier_surrogate_cox2_v1.svg`.
+
+## Conclusion
+
+**The surrogate does NOT beat v7 where it matters most, and DOES beat it on the
+rest of the curve — the split is the finding.**
+
+1. **The named failure mode is a data-coverage problem, not a feature or formula
+   problem.** CHEMBL2315019 is an out-of-distribution singleton in a 45-molecule
+   set. No LOO regression on these features recovers it, just as no reweighting
+   of the 8 prescreen variants did. Fixing it needs more candidates (so it has
+   neighbours) or docking-aware features / actually docking it — not a better
+   cheap ranker.
+2. **The mid-pack was partly a ranking-formula problem after all.** A surrogate
+   on the *same* fp + descriptors the prescreen already had, but fit on real
+   docking labels, cuts the budget for full top-5 recovery from N ~ 32 to
+   N ~ 20-21 and for full top-10 from N ~ 36 to N ~ 21 — a real ~1.4-1.5x
+   further docking saving on top of v7's, holding for both ridge and rf. So the
+   earlier "the ceiling is the models, not the formula" is too strong: it holds
+   for the #1 outlier, not for baseline ranks ~ 6-20.
+3. **This surrogate is target-specific.** It was trained on cox2's own docking
+   results. It is not a general-purpose prescreen: any new target would need a
+   seed batch of ~40 docks before the surrogate could rank anything, where the
+   frozen v7 policy needs zero.
+4. **Anti-leakage discipline cost the headline.** The affinity-best model (rf,
+   LOO rho = 0.679) is *worse* at strict recall@5 (0/5) than ridge (1/5) or v7
+   (1/5). Choosing the primary by affinity and reporting recall once — not
+   picking the model that happened to hit the top-5 — is what makes the mixed
+   result trustworthy.
+
+Frozen contracts untouched: v7 policy, docking params, ComputeRouter /
+ResourceManager / JobStore / tool-registry unchanged. `funnel/surrogate.py` is
+additive and offline. ace2 data not read.
+
+---
+
+# Pass 6 — two-phase adaptive funnel: does a small real-label seed batch beat a cold-start ranker? (2026-08-29)
+
+## Question
+
+Pass 5's surrogate needs ~44 real docking labels (leave-one-out over all 45) to
+beat v7 from N ~ 13 up. That is not a policy anyone could run cold — you would
+have needed to dock nearly everything already. The realistic version: **spend
+a small seed batch of real docks chosen by v7 alone, fit a target-specific
+surrogate on just that seed batch, then spend the rest of the budget on what
+the surrogate now says.** Does that two-phase policy earn back any of Pass 5's
+advantage at a budget an actual campaign could commit to up front? Offline,
+against the cached `baseline_cox2_v1.json`, no new docking.
+
+## Policy (`funnel/two_phase.py`)
+
+- **Phase 1:** rank the 41 v7-hard-filter survivors with the frozen v7 formula
+  alone. Dock the top-S ("seed batch").
+- **Phase 2:** fit a RandomForestRegressor (`n_estimators=300, random_state=0`
+  — Pass 5's `rf` variant, unchanged, no hyperparameter search) on ONLY the
+  seed batch's S real mean-affinities. Rank the remaining 41-S survivors with
+  it. Dock the next (N-S).
+- Union ranked on mean affinity (`funnel.ranking`, the one ranking function
+  everywhere else uses) to produce the funnel's final shortlist.
+
+**Declared S range, frozen before running:** `{5, 8, 10, 13, 16, 20}`. N swept
+from S to 41 for each S — 180 (S, N) cells total. Not extended after seeing
+results.
+
+## Leakage guards (asserted in code, not just intent)
+
+- **G1** — `seed_batch_for_S(v7_order, S)` takes only the pre-computed v7
+  prescreen order as its argument. That order comes from
+  `funnel.frontier.prescreen_order(DEFAULT_POLICY, features, candidate_ids)`,
+  which reads only the frozen policy and cached features — never the
+  baseline, never Pass 5's OOF predictions. There is no such argument for the
+  function to consult even by accident.
+- **G2** — `fit_phase2()` asserts `x_tr.shape[0] == S` and `y_tr.shape[0] ==
+  S` immediately before every `model.fit()` call, and asserts the training ids
+  and the held-out remainder ids are disjoint. `y_tr` is built by dict lookup
+  keyed only on the seed ids, so no label outside the seed batch can enter
+  training. Every Phase-2 prediction comes from a model that has seen exactly
+  S real affinities.
+
+Both guards ran clean on all 180 cells — no assertion fired.
+
+## Phase-2 fit quality vs. S (Spearman, predicted vs. true, on the held-out remainder)
+
+| S | held-out n | Spearman rho | MAE | seed-batch affinity range (kcal/mol) |
+|---:|---:|---:|---:|---|
+| 5  | 36 | **-0.334** | 0.748 | [-6.61, -5.73] (0.9 kcal/mol wide) |
+| 8  | 33 | **-0.412** | 0.725 | [-6.61, -5.73] (0.9 kcal/mol wide) |
+| 10 | 31 | +0.198 | 0.730 | [-6.76, -5.71] (1.1 kcal/mol wide) |
+| 13 | 28 | +0.411 | 0.627 | [-6.76, -5.12] (1.6 kcal/mol wide) |
+| 16 | 25 | +0.733 | 0.602 | [-6.76, -5.12] (1.6 kcal/mol wide) |
+| 20 | 21 | +0.701 | 0.524 | [-6.76, -4.75] (2.0 kcal/mol wide) |
+
+Full 45-molecule affinity range for reference: [-7.56, -2.52], 5.0 kcal/mol
+wide. **Below S=13 the fit is noise or worse than noise** (negative rho at
+S=5, S=8 — a RandomForest with 300 trees given 5-8 points cannot do anything
+but overfit). Real signal starts at S=13 and is not obviously still improving
+by S=20 (0.733 -> 0.701, inside noise for these sample sizes).
+
+## The (S, N) grid — recall@5 literal milestones
+
+First N at which each S reaches literal recall@5 = 5/5, against the two
+references at the same metric:
+
+| policy | first N at literal 5/5 | jobs |
+|---|---:|---:|
+| frozen v7 (reference) | 32 | 128 |
+| Pass-5 LOO surrogate, rf (reference) | 21 | 84 |
+| two-phase S=5 | 33 | 132 |
+| two-phase S=8 | 39 | 156 |
+| two-phase S=10 | 40 | 160 |
+| two-phase S=13 | 28 | 112 |
+| **two-phase S=16 (best)** | **26** | **104** |
+| two-phase S=20 | 30 | 120 |
+
+Full grid: `runs/two_phase_cox2_v1.csv` / `.json`. Plot (three curves — v7,
+Pass-5 rf surrogate, two-phase S=16 — recall@5 literal vs N):
+`runs/two_phase_cox2_v1.svg`.
+
+## Task 3 — is S=16 a real optimum, or a grid artifact?
+
+**It is not a lucky single cell, but it is not a sharp optimum either.** Every
+S at or above the S=13 quality threshold (13, 16, 20) lands full recall@5 in a
+narrow N=26-30 band, all three clearly ahead of v7's N=32. The S=16 vs S=13
+(26 vs 28) and S=16 vs S=20 (26 vs 30) gaps are 2-4 N wide — inside the
+resolution this grid can resolve with one candidate set and no resampling.
+**Read it as: a plateau opens up once S >= 13, not a peak at S=16
+specifically.** Below that threshold (S=5, 8, 10) the policy is worse than v7
+and *non-monotonic in S* (S=5 beats S=8 and S=10) — exactly what negative/
+near-zero held-out Spearman predicts: the ranking each of those fits produces
+is closer to random than to informative, so which N first stumbles onto the
+right molecules is luck, not signal.
+
+## Why the small-S fits are bad: v7's own seed batch is a narrow affinity band, not a diverse one
+
+The unanticipated finding. v7 doesn't sample the affinity range when it picks
+a seed batch — it picks the S molecules **it already likes**, which cluster
+tightly: the S=5 seed batch spans only 0.9 kcal/mol (-6.61 to -5.73) out of
+the full set's 5.0 kcal/mol range. A regressor trained on a 0.9 kcal/mol-wide
+label range has no gradient to learn and cannot extrapolate to the 5.0
+kcal/mol range it is then asked to rank — hence negative Spearman, not just
+weak Spearman. The seed-batch range widens only slowly as S grows (1.6 kcal/mol
+at S=13, still only 2.0 at S=20, vs 5.0 for the full set), which is the real
+reason quality turns positive only once S >= 13, not simply "more points is
+better." **A seed batch chosen by v7 is a biased sample for this purpose** —
+picking-the-best-looking-S is in tension with picking-a-labelled-set-that-
+spans-the-space. A policy that wanted the surrogate to work sooner would need
+to seed-sample for label diversity (e.g. a stratified or max-min-distance pick
+over v7 score, or over descriptor space), not simply take v7's own top-S. That
+redesign is out of scope for this pass — noted, not built.
+
+## The honest answer to "does two-phase beat both references?"
+
+**It beats frozen v7 (once S >= 13) and does NOT beat the Pass-5 LOO
+surrogate, at every S in the declared range.** That second result is not a
+failure of the two-phase idea — it is the answer to the question Pass 5 left
+open. The Pass-5 reference is fit on 44 real labels per fold (via leave-one-
+out); the best two-phase seed batch tested here uses at most 20. The gap
+(N=21 vs N=26, ~1.2x more docking for the two-phase policy at its best S) is
+the price of using less than half the labels the reference had. This pass
+does not establish where between S=20 and S=44 the crossover to beating the
+LOO reference sits — that would need S values above 20, outside the declared
+range, and is deliberately not tested here (see Constraints).
+
+CHEMBL2315019 (baseline #1, the named out-of-distribution singleton) is
+recovered by every S in {13, 16, 20} — first entering the docked set at
+N=28, 26, 30 respectively, always simultaneously with the last remaining
+true-top-5 slot (in this candidate set, "full recall@5" and "has
+CHEMBL2315019 been docked yet" are the same event past S=13, since the other
+four true-top-5 molecules are all recovered by low N in every variant). It is
+**not** recovered at all under S in {5, 8, 10} within their own budgets short
+of N=29-40 — consistent with the CONTEXT prediction that the singleton would
+likely still be missed, and consistent with Pass 5's finding that it is an
+out-of-distribution point no LOO variant predicted well either (rank
+15th-26th there). The two-phase S=13-20 fits do surface it earlier than v7
+(N=32) despite training on far fewer labels than Pass 5's LOO fits — the
+seed-batch range effect above is the reason once S clears the S=13 threshold.
+
+## Declared S range and conclusion, for the record
+
+Declared before running: S in {5, 8, 10, 13, 16, 20}. Not extended after
+seeing results — the observed non-monotonicity below S=13 and the shallow
+plateau at S=13-20 are reported as found, not smoothed over by adding more S
+values to chase a cleaner curve.
+
+**Conclusion:** a v7-selected seed batch needs S >= 13 (of 41 survivors) before
+its surrogate fit clears noise (Spearman rho turns from negative to +0.4-0.7);
+below that, the two-phase policy is worse than v7 and non-monotonic in S. Once
+past that threshold, two-phase beats v7 by a real but modest margin (~1.1-1.2x
+fewer docks for full recall@5, S=13-20 all landing in a 26-30 N band) and
+still trails the Pass-5 full-information surrogate by a similar margin
+(~1.2-1.4x). The bottleneck is not sample count alone but **label diversity**:
+v7's own top-S seed batch is a narrow affinity band by construction, which is
+why quality rises with S more slowly than "more data helps" alone would
+predict. No hyperparameters were tuned against recall; the rf model is Pass
+5's, unchanged. Frozen contracts untouched: v7 policy, docking params,
+ComputeRouter / ResourceManager / JobStore / tool-registry unchanged.
+`funnel/two_phase.py` is additive and offline. ace2 data not read.
