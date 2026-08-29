@@ -58,8 +58,10 @@ class SweepResult:
     selected: list[str]                      # policy top-5, in policy order
     selected_baseline_ranks: list[int]
     filtered_out: list[str]
-    recall_at_5: float
+    recall_at_5_literal: float               # baseline top-5 literally in policy top-5
+    recall_at_5: float                       # tie-credited (partner in a tie group counts)
     recall_at_5_hits: list[str]
+    recall_at_10_literal: float
     recall_at_10: float
     false_negatives: list[str]
     mean_baseline_rank_selected: float
@@ -105,14 +107,19 @@ def score_policy(name: str, policy: FunnelPolicy, baseline: RunRecord,
     policy_top5 = [lid for lid, _ in scored[:TOP_N]]
     policy_top10 = [lid for lid, _ in scored[:10]]
 
-    # --- recall@k with tie credit ---
-    def recall(b_top: list[str], p_top: list[str]) -> tuple[float, list[str]]:
+    # --- recall@k, LITERAL and tie-credited ---
+    def recall(b_top: list[str], p_top: list[str], credited: bool) -> tuple[float, list[str]]:
         p = set(p_top)
-        hits = [m for m in b_top if m in p or (ties.get(m, set()) & p)]
+        if credited:
+            hits = [m for m in b_top if m in p or (ties.get(m, set()) & p)]
+        else:
+            hits = [m for m in b_top if m in p]
         return (len(hits) / len(b_top) if b_top else 0.0), hits
 
-    r5, r5_hits = recall(b_top5, policy_top5)
-    r10, _ = recall(b_top10, policy_top10)
+    r5l, _ = recall(b_top5, policy_top5, credited=False)
+    r5, r5_hits = recall(b_top5, policy_top5, credited=True)
+    r10l, _ = recall(b_top10, policy_top10, credited=False)
+    r10, _ = recall(b_top10, policy_top10, credited=True)
 
     fn = [m for m in b_top5 if m in set(filtered)]
     sel_ranks = [b_rank[l] for l in policy_top5]
@@ -122,7 +129,8 @@ def score_policy(name: str, policy: FunnelPolicy, baseline: RunRecord,
         name=name, ranker=policy.ranker, filter_mode=policy.filter_mode,
         selected=policy_top5, selected_baseline_ranks=sel_ranks,
         filtered_out=filtered,
-        recall_at_5=r5, recall_at_5_hits=r5_hits, recall_at_10=r10,
+        recall_at_5_literal=r5l, recall_at_5=r5, recall_at_5_hits=r5_hits,
+        recall_at_10_literal=r10l, recall_at_10=r10,
         false_negatives=fn, mean_baseline_rank_selected=round(mean_rank, 1),
         n_survivors=len(survivors),
     )
@@ -173,23 +181,30 @@ def main() -> int:
     for name, pol in variants().items():
         rows.append(score_policy(name, pol, baseline, features, cand_ids))
 
+    print("recall@5 shown as  literal / tie-credited  (literal first). Tie credit: a "
+          "baseline top-5 molecule whose\ntie-group partner was picked is not a miss — "
+          "tie members differ by < TIE_EPSILON=0.10 kcal/mol,\non the order of the "
+          "docking method's own seed variance (median seed sigma 0.036 on this baseline).\n")
     print(f"{'variant':<28} {'ranker':<22} {'filter':<16} {'surv':>4} "
-          f"{'rec@5':>6} {'rec@10':>7} {'FN':>3} {'meanRk':>7}")
-    print("-" * 100)
+          f"{'rec@5 (lit/tie)':>16} {'rec@10 (lit/tie)':>17} {'FN':>3} {'meanRk':>7}")
+    print("-" * 118)
     for r in rows:
         print(f"{r.name:<28} {r.ranker:<22} {r.filter_mode:<16} {r.n_survivors:>4} "
-              f"{r.recall_at_5*5:>4.0f}/5 {r.recall_at_10*10:>5.0f}/10 {len(r.false_negatives):>3} "
-              f"{r.mean_baseline_rank_selected:>7}")
+              f"{r.recall_at_5_literal*5:>7.0f}/5 /{r.recall_at_5*5:>3.0f}/5 "
+              f"{r.recall_at_10_literal*10:>8.0f}/10 /{r.recall_at_10*10:>3.0f}/10 "
+              f"{len(r.false_negatives):>3} {r.mean_baseline_rank_selected:>7}")
 
     print("\n--- per-variant detail (policy top-5 -> baseline rank) ---")
     for r in rows:
         pairs = ", ".join(f"{l}#{rk}" for l, rk in zip(r.selected, r.selected_baseline_ranks))
         fn = f"  FALSE-NEG: {r.false_negatives}" if r.false_negatives else ""
-        print(f"  {r.name:<28} recall@5={r.recall_at_5*5:.0f}/5 hits={r.recall_at_5_hits}")
+        print(f"  {r.name:<28} recall@5 = {r.recall_at_5_literal*5:.0f}/5 literal, "
+              f"{r.recall_at_5*5:.0f}/5 tie-credited  (tie hits={r.recall_at_5_hits})")
         print(f"  {'':<28} picks: {pairs}{fn}")
 
-    best = max(rows, key=lambda r: (r.recall_at_5, -r.mean_baseline_rank_selected))
-    print(f"\nbest on recall@5: {best.name}  ({best.recall_at_5*5:.0f}/5, "
+    best = max(rows, key=lambda r: (r.recall_at_5_literal, r.recall_at_5, -r.mean_baseline_rank_selected))
+    print(f"\nbest on recall@5: {best.name}  ({best.recall_at_5_literal*5:.0f}/5 literal, "
+          f"{best.recall_at_5*5:.0f}/5 tie-credited, "
           f"mean baseline rank {best.mean_baseline_rank_selected})")
     return 0
 

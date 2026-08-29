@@ -1,0 +1,27 @@
+# Clean-environment test of REPRODUCTION.md, steps 1-6.
+#
+#   docker build  --platform=linux/amd64 -f docker/Dockerfile.repro -t drugforge-repro .
+#   docker run --rm --platform=linux/amd64 drugforge-repro
+#
+# --platform=linux/amd64: scripts/setup_vina.sh supports linux-x86_64 (the
+# canonical target), not linux-aarch64. On an Apple-Silicon host this runs
+# under QEMU (correct, ~3-5x slower).
+FROM python:3.11-slim
+
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends curl ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+COPY backend/requirements.txt backend/requirements.txt
+RUN python -m venv backend/venv \
+    && backend/venv/bin/pip install --upgrade pip \
+    && backend/venv/bin/pip install --no-cache-dir -r backend/requirements.txt
+
+COPY . .
+
+ENV COMPUTE_MODE=balanced \
+    DOCKING_TIMEOUT_SECONDS=1200 \
+    PYTHONUNBUFFERED=1
+
+ENTRYPOINT ["/app/docker/repro-run.sh"]

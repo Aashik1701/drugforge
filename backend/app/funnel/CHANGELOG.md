@@ -118,18 +118,18 @@ OR a tie-group partner is selected — as the task specifies). Under this metric
 v1 itself scores 2/5, not 1/5: it picks CHEMBL34913 (baseline #4, tie2) which
 credits its tie-partner CHEMBL76692 (baseline #5).
 
-| variant | ranker / filter | survivors | recall@5 | recall@10 | false-neg | mean baseline rank of 5 picked |
-|---|---|---:|---:|---:|---:|---:|
-| v1_current | v1_multiobjective / druglike+tox | 41 | **2/5** | 9/10 | 0 | 12.8 |
-| v2_binding_only | binding_only / druglike+tox | 41 | **2/5** | 7/10 | 0 | 11.8 |
-| v3_binding_only_tox_filter | binding_only / tox_only | 45 | **2/5** | 7/10 | 0 | 11.8 |
-| v4_descriptor_heuristic | descriptor_heuristic / druglike+tox | 41 | **2/5** | 7/10 | 0 | 20.4 |
-| v5_binding_desc_blend | binding_desc_blend / druglike+tox | 41 | **2/5** | 7/10 | 0 | 11.8 |
-| v6_ligand_efficiency | ligand_efficiency / druglike+tox | 41 | **0/5** | 3/10 | 0 | 40.8 |
-| v7_binding_weak_cox2 | binding_norm + 0.15·P(cox2) / druglike+tox | 41 | **2/5** | 9/10 | 0 | 12.6 |
-| v8_binding_only_no_filter | binding_only / none | 45 | **2/5** | 7/10 | 0 | 11.8 |
+| variant | ranker / filter | survivors | recall@5 literal | recall@5 tie-cred | recall@10 lit / tie | false-neg | mean baseline rank |
+|---|---|---:|---:|---:|---:|---:|---:|
+| v1_original | v1_multiobjective / druglike+tox | 41 | **1/5** | **2/5** | 5/10 / 9/10 | 0 | 12.8 |
+| v2_binding_only | binding_only / druglike+tox | 41 | **1/5** | **2/5** | 4/10 / 7/10 | 0 | 11.8 |
+| v3_binding_only_tox_filter | binding_only / tox_only | 45 | **1/5** | **2/5** | 4/10 / 7/10 | 0 | 11.8 |
+| v4_descriptor_heuristic | descriptor_heuristic / druglike+tox | 41 | **1/5** | **2/5** | 3/10 / 7/10 | 0 | 20.4 |
+| v5_binding_desc_blend | binding_desc_blend / druglike+tox | 41 | **1/5** | **2/5** | 4/10 / 7/10 | 0 | 11.8 |
+| v6_ligand_efficiency | ligand_efficiency / druglike+tox | 41 | **0/5** | **0/5** | 1/10 / 3/10 | 0 | 40.8 |
+| v7_binding_weak_cox2 | binding_norm + 0.15·P(cox2) / druglike+tox | 41 | **1/5** | **2/5** | 5/10 / 9/10 | 0 | 12.6 |
+| v8_binding_only_no_filter | binding_only / none | 45 | **1/5** | **2/5** | 4/10 / 7/10 | 0 | 11.8 |
 
-**No variant clears a meaningful improvement on recall@5** — it is flat at 2/5
+**No variant clears a meaningful improvement on recall@5** — flat at 1/5 literal, 2/5 tie-credited
 for every viable ranker. Reason (from the sweep detail): the baseline's top 3
 docked hits carry no cheap signal —
 
@@ -149,7 +149,7 @@ ferulate, esketamine — baseline ranks 45/40/39/37/43), because the baseline
 ranks on raw (size-biased) mean affinity. Confirmed the hypothesis that LE
 fights a size-biased baseline.
 
-v4 (pure physicochemistry, no ML) matches the ML variants on recall@5 (2/5) but
+v4 (pure physicochemistry, no ML) matches the ML variants on recall@5 (1/5 lit, 2/5 tie) but
 picks worse-docking molecules overall (mean rank 20.4) — a drug-likeness prior
 alone is not worse than the broken `cox2` model at finding the tie2 cluster,
 but it is worse at everything else.
@@ -159,7 +159,7 @@ but it is worse at everything else.
 `DEFAULT_POLICY` ranker `v1_multiobjective` -> `binding_weak_cox2`
 (`binding_norm + 0.15 * P(cox2)`), filters unchanged.
 
-- recall@5: 2/5 -> 2/5 (**no change** — stated plainly).
+- recall@5: 1/5 literal / 2/5 tie-credited -> unchanged (**no change** — stated plainly).
 - recall@10: 9/10 (tied best), mean baseline rank of picks 12.8 -> 12.6.
 - Rationale: removes the `cox2` shape-detector's *dominance* (weight 1.0 -> 0.15
   as a tiebreak only) while — per the sweep data, not tuning — keeping the one
@@ -177,7 +177,7 @@ predicted v7's picks and recall; the live run reproduces them exactly:
 | | offline sweep (from cached baseline) | live run (fresh docks) |
 |---|---|---|
 | picks (baseline rank) | 411894#22, 408215#19, 111518#8, 34913#4, 327900#10 | **same five** |
-| recall@5 (tie-credited) | 2/5 (CHEMBL34913, CHEMBL76692) | **2/5 (CHEMBL34913, CHEMBL76692)** |
+| recall@5 literal / tie-cred | 1/5 / 2/5 (CHEMBL34913, CHEMBL76692) | **1/5 / 2/5 (same)** |
 | literal top-5 overlap | 1/5 | 1/5 |
 
 Per-seed docked affinities for all 5 are bit-identical to `baseline_cox2_v1.json`
@@ -186,7 +186,7 @@ Spearman rho over the 5 commonly-docked = +1.000. 0 false negatives.
 `runs/funnel_cox2_v1.json` now holds the v7 run.
 
 **Bottom line for Task 3:** offline prediction == live result (no harness bug);
-recall@5 unchanged at 2/5; the prescreen is not "fixed" — the baseline's top 3
+recall@5 unchanged (1/5 literal, 2/5 tie-credited); the prescreen is not "fixed" — the baseline's top 3
 docked hits carry no cheap signal that any of the 8 tested policies can exploit.
 
 ---
@@ -204,23 +204,21 @@ The funnel filters 4 of 45 candidates (drug-likeness), so its docking pool is
 **41** — it can never reach N > 41, and the last 4 recall points beyond N≈32
 come from candidates the *baseline* docked that the funnel's prescreen buries.
 
-| recall@5 (tie-credited) | first reached at N | jobs (4N) | est. dock wall | saving vs full 180-job baseline |
-|---|---|---|---|---|
-| 0/5 | N=1–3 | 4–12 | 118–555 s | — |
-| **2/5** | **N=4** | 16 | ~644 s | **11.1×** |
-| (plateau 2/5) | N=4–9 | | | |
-| **4/5** | **N=10** | 40 | ~1777 s | **4.0×** |
-| (plateau 4/5) | N=10–31 | | | |
-| **5/5** | **N=32** | 128 | ~4321 s | 1.7× |
+| recall@5 first reached at N (jobs=4N) | LITERAL | tie-credited | est. dock wall / saving vs full 180-job baseline |
+|---|---|---|---|
+| 1/5 | N=4 (16) | N=4 (16) | ~644 s / **11.1×** |
+| 2/5 | N=10 (40) | N=4 (16) | lit ~1777 s / **4.0×**;  tie ~644 s / **11.1×** |
+| 3/5 | N=14 (56) | N=10 (40) | lit ~2172 s / 3.3×;  tie ~1777 s / 4.0× |
+| 4/5 | N=30 (120) | N=10 (40) | lit ~4016 s / 1.8×;  tie ~1777 s / 4.0× |
+| 5/5 | N=32 (128) | N=32 (128) | ~4321 s / 1.7× |
 
-Literal recall@5 lags: 1/5 at N=4, 2/5 at N=10, 3/5 at N=15, 4/5 at N=30, 5/5
-at N=32. recall@10 (tie-credited): 6/10 at N=4, 9/10 at N=10, 10/10 at N=32.
+recall@10 (literal / tie-credited): 2 / 6 at N=4, 5 / 9 at N=10, 9 / 10 at N=32.
 
 Marginal efficiency of recall@5(tie): 0→2 costs 4 candidates (0.50/cand);
 2→4 costs 6 (0.33/cand); 4→5 costs **22** (0.045/cand) — a 7× efficiency drop.
 
-**Recommended operating point: N = 10.** recall@5 = 4/5 (tie-credited) / 2/5
-(literal), recall@10 = 9/10, ~4× docking saving (40 jobs vs 180, ~1.8 ks vs
+**Recommended operating point: N = 10.** recall@5 = **2/5 literal, 4/5
+tie-credited**, recall@10 = 5/10 literal, 9/10 tie-credited, ~4× docking saving (40 jobs vs 180, ~1.8 ks vs
 7.1 ks). It is the knee: below it you sit at 2/5; above it, 22 more candidates
 (88 jobs) buy exactly one more recall point, because CHEMBL2315019 — the single
 strongest docker (−7.56) — has cox2 P=0.05 and binding_score 5.35 and the
@@ -335,3 +333,63 @@ individual raw ACE2 affinity values were visible in a log tail. No ranking,
 recall, or policy comparison was computed from them; that first run is being
 discarded and re-docked clean. This pre-registration and its commit precede any
 evaluation of the clean artifact.
+
+## Task 2 (pass 4) — recall reporting: LITERAL + tie-credited everywhere, literal first
+
+The tie-credited number does not stand alone. Every place a recall figure
+appears now shows **literal first, then tie-credited**:
+`funnel/evaluate.py` output, `funnel/sweep.py` table + per-variant detail,
+`funnel/frontier.py` table + `runs/frontier_*.csv` (columns `recall5_literal`,
+`recall5_tiecredit`, `recall10_literal`, `recall10_tiecredit`) +
+`runs/frontier_*.svg` (four curves, literal-first legend),
+`docs/development/funnel.md`, and the tables above in this file.
+
+**Why tie credit is defensible (one line):** tie-group members are separated by
+less than `TIE_EPSILON = 0.10 kcal/mol` — on the order of the docking method's
+own measured seed variance (median seed σ = **0.036 kcal/mol** across the 45
+`baseline_cox2_v1` candidates; celecoxib/rofecoxib differ by 0.045,
+ibuprofen/acetaminophen by 0.064). Picking one member of a tie group over
+another is a coin-flip the docking cannot resolve, so it is not scored as a
+miss. It is a *secondary* view, never the headline.
+
+cox2_v1 corrected headline: **recall@5 = 1/5 literal, 2/5 tie-credited** for
+every viable policy (v6 = 0/5 both). Frontier knee at N=10: **2/5 literal, 4/5
+tie-credited**, 4× docking saving.
+
+## Task 1 & 4 (pass 4) — BLOCKED by host disk exhaustion
+
+The reference machine (Apple M2, 228 GiB disk) filled during this pass:
+`/System/Volumes/Data` reached 100 % with **< 1 GiB free** (194 GiB pre-existing
+user data, not touchable). Two things could not complete:
+
+1. **Held-out ACE2 evaluation (Task 1).** The ACE2 baseline docking run
+   (`funnel.baseline --set-id ace2_v1 --target ace2`, ~2–3 h, 180 Vina jobs)
+   was launched twice:
+   - Run 1 (`baseline_ace2` PID 27106): laptop slept overnight; the poll
+     deadline used `time.time()` (advances during sleep) and marked in-flight
+     docks "timeout" though the worker completed them on wake. Discarded.
+     **Fix committed (`3297f70`): `_dock_one` now uses `time.monotonic()`.**
+   - Run 2 (clean, under `caffeinate`, monotonic deadline): got to ~4/45 then
+     the disk filled; SQLite (`/tmp/funnel_baseline_*.db`) could no longer be
+     written and the job store corrupted (`OperationalError: no such table:
+     jobs`), killing the worker. Unrecoverable.
+
+   The held-out number is therefore **not obtained this pass**. Everything
+   needed to get it is in place and untouched: the frozen policy
+   (`v7_binding_weak_cox2`), the `ace2_v1` candidate set (sha
+   `b55d875f…`), the corrected Zn-centred box, the pre-registered prediction,
+   and the one-shot commands. It runs on any machine with a few GB free.
+
+2. **Clean-container reproduction (Task 4).** `docker/Dockerfile.repro` +
+   `docker/repro-run.sh` build from `python:3.11-slim` and execute
+   REPRODUCTION.md steps 1–6. The container **built clean, installed every
+   backend dependency, and ran `scripts/setup_vina.sh` + `scripts/verify_vina.sh`
+   successfully** (verbatim transcript in `REPRODUCTION.md`). It then died when
+   Docker Desktop could not write its own content store (`io.containerd …:
+   input/output error`) — the same disk-full condition. Steps 2, 5, 6 were run
+   on the host against the committed artifacts and match the guide; steps 3–4
+   (docking) are unchanged from prior passes and their outputs
+   (`runs/funnel_cox2_v1.json`, `runs/baseline_cox2_v1.json`) are committed.
+
+Not a code or guide defect — a machine-state blocker. Stated plainly rather
+than worked around by deleting the user's data.

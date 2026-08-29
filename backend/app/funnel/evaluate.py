@@ -153,8 +153,10 @@ def compare(baseline: RunRecord, funnel: RunRecord) -> None:
 
     straddle_hit = [l for l in b_straddle if l in f_docked]
     print("\n--- agreement ---")
-    print(f"    recall@5 (tie-credited)      : {recall5} / {len(b_top)}   hits={recall5_hits}")
-    print(f"    top-5 overlap (literal)      : {len(overlap)} / {len(b_top)}   {overlap}")
+    print(f"    recall@5 LITERAL             : {len(overlap)} / {len(b_top)}   {overlap}")
+    print(f"    recall@5 tie-credited        : {recall5} / {len(b_top)}   hits={recall5_hits}")
+    print(f"      (tie credit: a tie-group partner counts; tie members differ by")
+    print(f"       < 0.10 kcal/mol ~ the docking's own seed sigma (median 0.036))")
     if b_straddle:
         print(f"    (rank-6+ tied with a top-5   : {b_straddle} — funnel recovered "
               f"{len(straddle_hit)} of these)")
@@ -193,7 +195,8 @@ def compare(baseline: RunRecord, funnel: RunRecord) -> None:
     print(f"  verdict: {verdict}")
     print(f"  \"funnel docked {funnel.total_docking_jobs_submitted} jobs vs baseline "
           f"{baseline.total_docking_jobs_submitted}; recovered {len(overlap)}/{len(b_top)} "
-          f"of the baseline's top-5; {len(false_negatives)} false negative(s).\"")
+          f"of the baseline's top-5 (literal), {recall5}/{len(b_top)} tie-credited; "
+          f"{len(false_negatives)} false negative(s).\"")
     print(line)
 
 
