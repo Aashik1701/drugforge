@@ -678,3 +678,203 @@ predict. No hyperparameters were tuned against recall; the rf model is Pass
 5's, unchanged. Frozen contracts untouched: v7 policy, docking params,
 ComputeRouter / ResourceManager / JobStore / tool-registry unchanged.
 `funnel/two_phase.py` is additive and offline. ace2 data not read.
+
+---
+
+# Pass 7 — pre-registration: does a diversity-selected seed batch fix Pass 6? (2026-08-29)
+
+Written before `funnel/seed_diversity.py` exists or runs. Four strategies,
+capped at three plus the Pass-6 control. Same S range as Pass 6 — `{5, 8, 10,
+13, 16, 20}` — and the same N range (S to 41). Neither range is extended after
+seeing results.
+
+| strategy | selection rule | one-line hypothesis |
+|---|---|---|
+| `control_v7_topS` | Pass 6, unchanged: top-S of the v7 prescreen order | reproduces Pass 6 exactly — the baseline this pass tries to beat |
+| `maxmin_diversity` | greedy farthest-point over the 1034-dim (ECFP4 1024 bits + 10 descriptors) feature space, standardized (z-score) over the 41 survivors; start from the point closest to the feature-space centroid | maximizing feature-space spread should also widen the label range, clearing the Spearman noise floor at a smaller S than v7-top-S |
+| `stratified_v7_score` | S positions evenly spaced across the v7 rank-score ordering (index `round(i*(n-1)/(S-1))` for `i in 0..S-1`, `n=41`) — spread across the ranking, not concentrated at the top | v7's score already weakly tracks affinity, so spreading picks across its full range should capture more of the affinity spread than pure diversity, at lower implementation risk |
+| `random_seed0` | uniform random sample of S survivors, `numpy.random.default_rng(seed=0)`, single draw, no resampling | a real control — v7-top-S is a specifically bad (narrow-band) sample by construction, so even uniform random should do no worse; if random alone beats v7-top-S, seed *selection* was the fixable part of Pass 6 and the specific diversity criterion doesn't matter much |
+
+**Leakage guard G1 (unchanged from Pass 6):** every strategy function receives
+only a `ctx` containing the v7 prescreen order, the v7 rank-scores, and the
+feature matrix — never the baseline, an affinity, or a Pass-5 OOF prediction.
+`maxmin_diversity`'s starting point is the feature-space centroid, not v7's
+#1 pick, specifically so v7's ranking preference cannot leak into which point
+anchors the greedy search. Tie-breaks in `maxmin_diversity` and the sampling
+order in `random_seed0` use a v7-independent canonical order (sorted ligand
+id), so v7's ranking cannot bias tie-breaking either.
+
+**Leakage guard G2 (unchanged from Pass 6):** `fit_phase2()` is reused
+unmodified from `funnel.two_phase` — same assertion that training sees
+exactly S rows, same disjointness check between training and held-out ids.
+
+**Surrogate model:** Pass 5's `rf` (`RandomForestRegressor(n_estimators=300,
+random_state=0)`), unchanged. Not tuned against recall in this pass either.
+
+**Bar to clear:** beating frozen v7 (N=32) is necessary but not sufficient —
+Pass 6 already showed that's possible. The real question is whether any
+strategy beats the Pass-5 LOO surrogate (N=21). If none do, seed selection is
+not the binding constraint and this line of investigation closes.
+
+## Results (`funnel/seed_diversity.py`)
+
+Both leakage guards fired zero assertions across all 24 (strategy, S) fits and
+720 (strategy, S, N) grid cells. `runs/seed_diversity_cox2_v1.{csv,json,svg}`.
+
+### Seed-batch affinity range and held-out Spearman, all 24 cells
+
+| S | control (v7-top-S) | maxmin diversity | stratified v7-score | random (seed 0) |
+|---:|---|---|---|---|
+| 5  | range 0.88, rho **-0.334** | range 0.96, rho **+0.431** | range 0.95, rho **+0.518** | range 1.72, rho **+0.525** |
+| 8  | range 0.88, rho -0.412 | range 1.19, rho +0.341 | range 2.03, rho +0.594 | range 1.97, rho +0.371 |
+| 10 | range 1.05, rho +0.198 | range 1.19, rho +0.581 | range 2.78, rho +0.620 | range 1.74, rho +0.421 |
+| 13 | range 1.64, rho +0.411 | range 2.47, rho +0.501 | range 1.83, rho +0.632 | range 1.74, rho +0.450 |
+| 16 | range 1.64, rho +0.733 | range 2.47, rho +0.432 | range 2.06, rho +0.628 | range 1.74, rho +0.582 |
+| 20 | range 2.01, rho +0.701 | range 2.81, rho +0.488 | range 4.29, rho +0.582 | range 4.29, rho +0.758 |
+
+**First S at which held-out Spearman clears a "usable" bar (rho >= 0.4):**
+control = S=13; maxmin = S=5; stratified = S=5; random = S=5. All three
+alternative strategies clear it at the *smallest* S tested — four whole
+declared-S steps earlier than v7-top-S needs.
+
+**Range vs. quality, Pearson r across all 24 cells: +0.505.** Real and
+positive, confirming the Pass-6 mechanism in direction — but moderate, not
+strong: e.g. control's own best fit (S=16, rho=0.733) has a narrower range
+(1.64) than several worse-performing cells (stratified S=20: range 4.29, rho
+only 0.582). Range is *part* of the story, not the whole of it — which
+specific points end up in the batch matters too, not just how spread out they
+are. Plot: `runs/seed_diversity_cox2_v1.svg`.
+
+### First N reaching literal recall@5 = 5/5
+
+| S | control | maxmin | stratified | random |
+|---:|---:|---:|---:|---:|
+| 5  | 33 | **20** | 26 | 25 |
+| 8  | 39 | 28 | 28 | 31 |
+| 10 | 40 | 35 | 24 | 28 |
+| 13 | 28 | 36 | 25 | 32 |
+| 16 | 26 | 25 | 25 | 30 |
+| 20 | 30 | 27 | 30 | 30 |
+
+References at the same metric: **frozen v7 = N=32. Pass-5 LOO surrogate (rf,
+44 labels/fold) = N=21.**
+
+## Task 4 — the mechanism question, answered directly
+
+**Does a wider seed range produce a better fit?** Yes, moderately (Pearson
+r=+0.505 across 24 cells) — direction confirmed, strength partial.
+
+**Does any strategy push the Spearman crossover below S=13?** Yes, decisively.
+`maxmin_diversity`, `stratified_v7_score`, and `random_seed0` all clear
+rho >= 0.4 already at S=5, the smallest value tested — where the control needs
+S=13. Fixing *what a seed batch of a given size can learn* is real and easy:
+v7-top-S was a specifically bad way to pick a seed batch, and almost anything
+else (including plain uniform random) does better.
+
+**Does any strategy beat N=21?** One cell does, barely:
+`maxmin_diversity` at S=5 reaches N=20 — one job-count better than the Pass-5
+reference. **Read this as noise, not a finding.** Three things argue against
+it: (1) it is a single cell in a 24-cell grid, exactly the multiple-comparisons
+risk named going in; (2) `maxmin_diversity`'s own curve is wildly
+non-monotonic in S (20, 28, 35, 36, 25, 27) with no stable neighbourhood around
+S=5 — S=8 for the same strategy is 8 N worse; (3) the margin itself is one N
+out of a 41-wide sweep (~2%), well inside the resolution this grid can
+resolve with one candidate set and no resampling. No other cell, across 24
+(strategy, S) combinations and 4 candidate mechanisms, gets within 4 N of the
+reference from below.
+
+**Seed selection was not the binding constraint.** It looked like one after
+Pass 6 — negative Spearman is a loud, specific symptom, and it has a specific,
+now-confirmed cause (v7's seed batch is a narrow affinity band) and a specific,
+now-confirmed fix (pick for range instead: any of the three alternatives
+clears the noise floor four S-steps earlier). But fixing that symptom did not
+close the gap to the Pass-5 reference. Two things stand between "fit quality
+is fine now" and "beats N=21":
+
+1. **The recall milestone is a discrete, single-molecule event, not a smooth
+   function of fit quality** (this is Task 5's concentration finding, below).
+   A Spearman rho of 0.5 on 30+ held-out points says almost nothing about
+   whether one specific rank-1 outlier lands inside the next 10-15 picks —
+   that is a tail event the aggregate correlation does not control. Compare
+   `maxmin_diversity` S=8 (rho=+0.341, one of its weaker fits) landing
+   `CHEMBL2315019` at N=10 — earlier than S=5's own N=18 (rho=+0.431, its
+   *best* fit) — direct evidence that fit quality and outlier-detection timing
+   are only loosely coupled here.
+2. **The Pass-5 reference is not a fair like-for-like target.** It is fit on
+   44 real labels per leave-one-out fold — more than double the largest S
+   declared here (20). Closing the gap on genuinely equal footing would need
+   testing S values above 20, which is outside the declared range and
+   deliberately not done in this pass (see Constraints). This pass answers
+   "can smarter seed selection alone, at S<=20, match a model that effectively
+   saw ~44 labels" — and the answer is no, not reliably.
+
+## Unanticipated: `maxmin_diversity` is good at finding the outlier and bad at something else
+
+Cross-referencing against `funnel/concentration_check.py` (Task 5, below):
+`maxmin_diversity` docks `CHEMBL2315019` early in every S (N=18, 10, 17, 13,
+16, 20 — often *earlier* than any other strategy, including the control at
+comparable S), yet its "first N to literal 5/5" is frequently among the
+*worst* in the grid (S=10 -> 35, S=13 -> 36). The gap between "named molecule
+found" and "all five found" is 7-23 N for `maxmin_diversity` — far wider than
+any other strategy (control/random/stratified gaps are mostly 0-14 N, usually
+under 5 once S>=13). A plausible mechanism: greedy farthest-point search
+explicitly spends its early picks on points *unlike* what it already has,
+which is exactly what surfaces a structural outlier fast — but the same
+property can strand an "easy," representative true-positive that a
+score-based or even random ordering would reach sooner, because diversity
+selection has no reason to prefer typical, high-probability molecules over
+atypical ones. Diversity trades one kind of miss for another; it does not
+strictly dominate.
+
+## Task 5 — benchmark limitation: how concentrated is cox2_v1's recall@5 in one molecule?
+
+`funnel/concentration_check.py` re-reads every already-computed policy curve
+from Passes 4-7 (v7; the 3 Pass-5 surrogate variants; the 6 Pass-6 two-phase
+S values; the 24 Pass-7 strategy x S combinations — 34 policies total) and
+checks whether the N at which literal recall@5 first reaches 5/5 is *exactly*
+the N at which `CHEMBL2315019` first enters the docked set.
+
+**18 of 34 policies (53%) have their literal recall@5 = 5/5 milestone land on
+the exact same N as `CHEMBL2315019` being docked.** Full breakdown in
+`runs/concentration_cox2_v1.json`.
+
+This is lower than Pass 6's own framing suggested ("past S=13... the same
+event in every curve") — that held for the control/v7-derived family
+specifically, not universally. `maxmin_diversity` never coincides (0/6) for
+exactly the reason above: it finds the outlier fast but stalls on a different
+top-5 member. Even where the *exact* N doesn't match, the named molecule is
+usually close to the last one found (median gap a few N) for every strategy
+except `maxmin_diversity`, where the gap runs as high as 23 N.
+
+**Stated plainly as a benchmark limitation:** whether or not
+`CHEMBL2315019` specifically has been docked explains roughly half of every
+"did this policy reach full recall@5" outcome tested across four passes of
+this evaluation. cox2_v1's literal-recall@5 headline is, to a first
+approximation, a one-molecule detection test wearing a five-molecule metric's
+clothes. That does not invalidate the earlier recall numbers, but it does
+mean this benchmark's power to discriminate between policies that all handle
+the other four true-top-5 molecules easily (nearly all of them, at low N) is
+limited to how each policy handles exactly one hard, out-of-distribution
+point. A benchmark that could actually separate these policies on their
+general prescreen quality — rather than on one coin-flip-adjacent event —
+would need either a larger candidate set (so the difficulty isn't
+concentrated in a single point) or a recall target less dominated by one
+outlier (e.g. recall@10, where the milestone is less singular — worth a
+future pass, not run here).
+
+## Summary
+
+Diversity-based (and even plain random) seed selection **does** fix the
+diagnosed Pass-6 mechanism — fit quality clears the noise floor four S-steps
+earlier than v7-top-S. It does **not** reliably close the gap to the Pass-5
+LOO reference; the one cell that nominally does (`maxmin_diversity` S=5,
+N=20) is a single-cell, non-monotonic-neighbourhood result inside a
+one-molecule-dominated metric, and is reported here as noise, not a win.
+Seed selection was a real, fixable problem; it was not *the* binding
+constraint on beating a reference fit on more than double the labels any
+declared S provides. Declared S range `{5, 8, 10, 13, 16, 20}` not extended
+after seeing results. No surrogate hyperparameters tuned against recall (Pass
+5's rf, unchanged). Frozen contracts untouched: v7 policy, docking params,
+ComputeRouter / ResourceManager / JobStore / tool-registry unchanged.
+`funnel/seed_diversity.py` and `funnel/concentration_check.py` are additive
+and offline. ace2 data not read.

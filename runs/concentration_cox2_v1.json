@@ -1,0 +1,213 @@
+{
+  "set_id": "cox2_v1",
+  "named_failure": "CHEMBL2315019",
+  "policies": [
+    {
+      "label": "v7 (frozen policy)",
+      "N_at_5of5": 32,
+      "N_named_docked": 32,
+      "coincide": true
+    },
+    {
+      "label": "Pass-5 surrogate (ridge)",
+      "N_at_5of5": 20,
+      "N_named_docked": 15,
+      "coincide": false
+    },
+    {
+      "label": "Pass-5 surrogate (rf)",
+      "N_at_5of5": 21,
+      "N_named_docked": 18,
+      "coincide": false
+    },
+    {
+      "label": "Pass-5 surrogate (krr_tanimoto)",
+      "N_at_5of5": 26,
+      "N_named_docked": 26,
+      "coincide": true
+    },
+    {
+      "label": "Pass-6 two-phase (S=5)",
+      "N_at_5of5": 33,
+      "N_named_docked": 29,
+      "coincide": false
+    },
+    {
+      "label": "Pass-6 two-phase (S=8)",
+      "N_at_5of5": 39,
+      "N_named_docked": 36,
+      "coincide": false
+    },
+    {
+      "label": "Pass-6 two-phase (S=10)",
+      "N_at_5of5": 40,
+      "N_named_docked": 40,
+      "coincide": true
+    },
+    {
+      "label": "Pass-6 two-phase (S=13)",
+      "N_at_5of5": 28,
+      "N_named_docked": 28,
+      "coincide": true
+    },
+    {
+      "label": "Pass-6 two-phase (S=16)",
+      "N_at_5of5": 26,
+      "N_named_docked": 26,
+      "coincide": true
+    },
+    {
+      "label": "Pass-6 two-phase (S=20)",
+      "N_at_5of5": 30,
+      "N_named_docked": 30,
+      "coincide": true
+    },
+    {
+      "label": "Pass-7 control_v7_topS (S=5)",
+      "N_at_5of5": 33,
+      "N_named_docked": 29,
+      "coincide": false
+    },
+    {
+      "label": "Pass-7 control_v7_topS (S=8)",
+      "N_at_5of5": 39,
+      "N_named_docked": 36,
+      "coincide": false
+    },
+    {
+      "label": "Pass-7 control_v7_topS (S=10)",
+      "N_at_5of5": 40,
+      "N_named_docked": 40,
+      "coincide": true
+    },
+    {
+      "label": "Pass-7 control_v7_topS (S=13)",
+      "N_at_5of5": 28,
+      "N_named_docked": 28,
+      "coincide": true
+    },
+    {
+      "label": "Pass-7 control_v7_topS (S=16)",
+      "N_at_5of5": 26,
+      "N_named_docked": 26,
+      "coincide": true
+    },
+    {
+      "label": "Pass-7 control_v7_topS (S=20)",
+      "N_at_5of5": 30,
+      "N_named_docked": 30,
+      "coincide": true
+    },
+    {
+      "label": "Pass-7 maxmin_diversity (S=5)",
+      "N_at_5of5": 20,
+      "N_named_docked": 18,
+      "coincide": false
+    },
+    {
+      "label": "Pass-7 maxmin_diversity (S=8)",
+      "N_at_5of5": 28,
+      "N_named_docked": 10,
+      "coincide": false
+    },
+    {
+      "label": "Pass-7 maxmin_diversity (S=10)",
+      "N_at_5of5": 35,
+      "N_named_docked": 17,
+      "coincide": false
+    },
+    {
+      "label": "Pass-7 maxmin_diversity (S=13)",
+      "N_at_5of5": 36,
+      "N_named_docked": 13,
+      "coincide": false
+    },
+    {
+      "label": "Pass-7 maxmin_diversity (S=16)",
+      "N_at_5of5": 25,
+      "N_named_docked": 16,
+      "coincide": false
+    },
+    {
+      "label": "Pass-7 maxmin_diversity (S=20)",
+      "N_at_5of5": 27,
+      "N_named_docked": 20,
+      "coincide": false
+    },
+    {
+      "label": "Pass-7 random_seed0 (S=5)",
+      "N_at_5of5": 25,
+      "N_named_docked": 17,
+      "coincide": false
+    },
+    {
+      "label": "Pass-7 random_seed0 (S=8)",
+      "N_at_5of5": 31,
+      "N_named_docked": 30,
+      "coincide": false
+    },
+    {
+      "label": "Pass-7 random_seed0 (S=10)",
+      "N_at_5of5": 28,
+      "N_named_docked": 28,
+      "coincide": true
+    },
+    {
+      "label": "Pass-7 random_seed0 (S=13)",
+      "N_at_5of5": 32,
+      "N_named_docked": 32,
+      "coincide": true
+    },
+    {
+      "label": "Pass-7 random_seed0 (S=16)",
+      "N_at_5of5": 30,
+      "N_named_docked": 30,
+      "coincide": true
+    },
+    {
+      "label": "Pass-7 random_seed0 (S=20)",
+      "N_at_5of5": 30,
+      "N_named_docked": 30,
+      "coincide": true
+    },
+    {
+      "label": "Pass-7 stratified_v7_score (S=5)",
+      "N_at_5of5": 26,
+      "N_named_docked": 26,
+      "coincide": true
+    },
+    {
+      "label": "Pass-7 stratified_v7_score (S=8)",
+      "N_at_5of5": 28,
+      "N_named_docked": 28,
+      "coincide": true
+    },
+    {
+      "label": "Pass-7 stratified_v7_score (S=10)",
+      "N_at_5of5": 24,
+      "N_named_docked": 10,
+      "coincide": false
+    },
+    {
+      "label": "Pass-7 stratified_v7_score (S=13)",
+      "N_at_5of5": 25,
+      "N_named_docked": 25,
+      "coincide": true
+    },
+    {
+      "label": "Pass-7 stratified_v7_score (S=16)",
+      "N_at_5of5": 25,
+      "N_named_docked": 17,
+      "coincide": false
+    },
+    {
+      "label": "Pass-7 stratified_v7_score (S=20)",
+      "N_at_5of5": 30,
+      "N_named_docked": 30,
+      "coincide": true
+    }
+  ],
+  "n_determined": 34,
+  "n_coincide": 18,
+  "coincidence_rate": 0.5294117647058824
+}
