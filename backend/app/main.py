@@ -182,6 +182,7 @@ from routers import chat
 from routers import dock
 from routers import compute as compute_endpoints
 from routers import funnel as funnel_endpoints
+from routers import agent as agent_endpoints
 
 app.include_router(solubility.router, prefix="/predict", tags=["Predictions"])
 app.include_router(bbbp.router, prefix="/predict", tags=["Predictions"])
@@ -198,6 +199,7 @@ app.include_router(chat.router, prefix="/api/chat", tags=["AI Chat"])
 app.include_router(dock.router, prefix="/api/dock", tags=["Docking"])
 app.include_router(compute_endpoints.router, prefix="/api/compute", tags=["Compute"])
 app.include_router(funnel_endpoints.router, prefix="/api/funnel", tags=["Funnel"])
+app.include_router(agent_endpoints.router, prefix="/api/agent", tags=["Agent"])
 
 
 # ============================================================================
