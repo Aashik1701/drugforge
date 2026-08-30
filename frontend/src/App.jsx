@@ -37,6 +37,7 @@ const LabBench = lazy(() => import('./components/LabBench.jsx'));
 const BatchProcessor = lazy(() => import('./components/BatchProcessor.jsx'));
 const UserSettings = lazy(() => import('./components/UserSettings.jsx'));
 const DockingStudio = lazy(() => import('./components/DockingStudio.jsx'));
+const FunnelScreen = lazy(() => import('./components/FunnelScreen.jsx'));
 const NotFound = lazy(() => import('./pages/NotFound.jsx'));
 
 // Auth pages (still needed)
@@ -78,6 +79,9 @@ const AppContent = () => {
 
             {/* Docking Studio */}
             <Route path="/app/docking" element={<ProtectedRoute><GlassLayout><DockingStudio /></GlassLayout></ProtectedRoute>} />
+
+            {/* Computational Funnel */}
+            <Route path="/app/funnel" element={<ProtectedRoute><GlassLayout><FunnelScreen /></GlassLayout></ProtectedRoute>} />
 
             {/* Auth */}
             <Route path="/register" element={<RegisterPage />} />

@@ -69,10 +69,10 @@ export const BentoGridItem = ({
       onMouseLeave={() => setIsHovered(false)}
       className={cn(
         "group relative rounded-2xl overflow-hidden",
-        "border border-white/[0.08] dark:border-white/[0.08] border-gray-200/50",
-        "bg-white/[0.03] dark:bg-white/[0.03] bg-gray-50/80",
+        "border border-paper-border/60 dark:border-white/[0.08]",
+        "bg-white dark:bg-white/[0.03]",
         "p-6 transition-all duration-300",
-        "hover:border-white/[0.15] dark:hover:border-white/[0.15] hover:border-gray-300/60",
+        "hover:border-clay/40 dark:hover:border-white/[0.15]",
         className
       )}
     >
@@ -122,7 +122,7 @@ export const BentoGridItem = ({
         <h3
           className={cn(
             "text-lg font-semibold mb-2 transition-colors duration-300",
-            "text-gray-800 dark:text-gray-100",
+            "text-ink dark:text-gray-100",
             `group-hover:${colors.text}`
           )}
         >
@@ -130,7 +130,7 @@ export const BentoGridItem = ({
         </h3>
 
         {/* Description */}
-        <p className="text-sm leading-relaxed text-gray-500 dark:text-gray-400">
+        <p className="text-sm leading-relaxed text-ink-soft dark:text-gray-400">
           {description}
         </p>
       </div>

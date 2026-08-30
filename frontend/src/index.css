@@ -41,7 +41,7 @@ html[data-performance-mode="true"] .animate-meteor {
 @layer base {
   :root {
     /* Light theme variables */
-    --color-bg-primary: #ffffff;
+    --color-bg-primary: #fcfcfc;
     --color-bg-secondary: #f3f4f6;
     --color-text-primary: #1f2937;
     --color-text-secondary: #6b7280;
@@ -67,6 +67,10 @@ body {
     sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  /* True document backdrop — sits behind any `fixed` + negative-z-index
+     layer (e.g. WebGLBackground), unlike a background set on a normal
+     in-flow wrapper div, which paints in front of it. */
+  background-color: var(--color-bg-primary);
   @apply transition-colors duration-300;
 }
 

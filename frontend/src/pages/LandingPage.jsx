@@ -4,16 +4,21 @@ import { motion, useInView } from 'framer-motion';
 import {
   Beaker, Brain, Shield, Zap,
   FlaskConical, Activity, Target, Pill, BarChart3, Microscope,
-  ArrowRight, Clock, Sparkles, ChevronDown, Mouse,
+  ArrowRight, Clock,
 } from 'lucide-react';
 
 // ─── Premium UI Components ─────────────────────────────────
-import { AuroraBackground } from '../components/ui/aurora-background';
 import { BentoGrid, BentoGridItem } from '../components/ui/bento-grid';
 import { ShimmerButton, GhostShimmerButton } from '../components/ui/shimmer-button';
 import { BorderBeam } from '../components/ui/border-beam';
-import { GlassBadge } from '../components/ui/GlassCard';
-import { FloatingMolecules } from '../components/ui/floating-molecules';
+import WebGLBackground from '../components/WebGLBackground';
+
+// ─── Accent gradient (small "AI" brand pop, warm-neutral base) ────
+// Light: clay → violet. Dark: violet → teal (close to the app's existing
+// dark-mode brand accent). Reused everywhere a highlighted word/number needs
+// the DrugForge "AI" signature without going back to a full aurora wash.
+const ACCENT_GRADIENT =
+  'bg-gradient-to-r from-clay-deep to-violet-600 dark:from-violet-400 dark:to-teal-400 bg-clip-text text-transparent';
 
 // ─── Typewriter Hook ──────────────────────────────────────────
 const useTypewriter = (words, typingSpeed = 120, deletingSpeed = 60, pauseMs = 2000) => {
@@ -102,16 +107,15 @@ const StatCard = ({ stat, index }) => {
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5, delay: 0.9 + index * 0.1 }}
-      className="relative group text-center px-6 py-5 rounded-2xl border border-white/[0.06] bg-white/[0.03] backdrop-blur-sm hover:border-white/[0.15] transition-all duration-300"
+      className="relative group text-center px-6 py-5 rounded-2xl border border-paper-border/50 dark:border-white/[0.08] bg-white/70 dark:bg-white/[0.03] backdrop-blur-sm hover:border-clay/40 dark:hover:border-white/[0.15] transition-all duration-300"
     >
-      <div className="text-3xl font-bold text-transparent md:text-4xl bg-gradient-to-r from-cyan-400 to-violet-400 bg-clip-text tabular-nums">
+      <div className={`text-3xl md:text-4xl font-bold tabular-nums font-display ${ACCENT_GRADIENT}`}>
         {stat.isNumber ? `${stat.prefix || ''}${count}${stat.suffix}` : stat.value}
       </div>
-      <div className="mt-1.5 text-[11px] tracking-[2px] text-gray-500 dark:text-gray-400 uppercase">
+      <div className="mt-1.5 text-[11px] tracking-[2px] text-ink-soft dark:text-gray-400 uppercase">
         {stat.label}
       </div>
-      {/* Subtle bottom glow on hover */}
-      <div className="absolute bottom-0 w-1/2 h-px transition-opacity duration-300 -translate-x-1/2 opacity-0 left-1/2 bg-gradient-to-r from-transparent via-cyan-500/40 to-transparent group-hover:opacity-100" />
+      <div className="absolute bottom-0 w-1/2 h-px transition-opacity duration-300 -translate-x-1/2 opacity-0 left-1/2 bg-gradient-to-r from-transparent via-violet-500/40 to-transparent group-hover:opacity-100" />
     </motion.div>
   );
 };
@@ -127,124 +131,101 @@ const HeroSection = () => {
   ]);
 
   return (
-    <AuroraBackground className="flex items-center justify-center min-h-screen px-4 pt-24 pb-32">
-      {/* Floating molecular decorations */}
-      <FloatingMolecules />
-
-      <div className="relative z-10 max-w-5xl mx-auto text-center">
-        {/* Badge */}
-        <motion.div
-          initial={{ opacity: 0, y: 20, filter: 'blur(10px)' }}
-          animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
-          transition={{ duration: 0.6 }}
-        >
-          <span className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-medium tracking-wide border border-cyan-500/20 bg-cyan-500/[0.08] text-cyan-600 dark:text-cyan-400 backdrop-blur-sm">
-            <span className="relative flex w-2 h-2">
-              <span className="absolute inline-flex w-full h-full rounded-full opacity-75 animate-ping bg-cyan-400" />
-              <span className="relative inline-flex w-2 h-2 rounded-full bg-cyan-500" />
-            </span>
-            9 AI Models · Real-Time Predictions · Zero Code
-          </span>
-        </motion.div>
-
-        {/* Title with glow */}
-        <motion.div
-          initial={{ opacity: 0, y: 30, filter: 'blur(12px)' }}
-          animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
-          transition={{ duration: 0.9, delay: 0.15 }}
-          className="relative mt-10 mb-6"
-        >
-          {/* Title glow */}
-          <div className="absolute inset-0 flex items-center justify-center pointer-events-none select-none" aria-hidden="true">
-            <span className="text-6xl font-thin text-transparent md:text-8xl lg:text-9xl bg-gradient-to-r from-cyan-400 via-violet-400 to-teal-400 bg-clip-text opacity-20 blur-2xl">
-              DrugForge
-            </span>
-          </div>
-          <h1 className="relative text-6xl font-thin tracking-tight md:text-8xl lg:text-9xl">
-            <span className="text-transparent bg-gradient-to-r from-cyan-400 via-violet-400 to-teal-400 bg-clip-text">
-              DrugForge
-            </span>
-          </h1>
-        </motion.div>
-
-        {/* Subtitle */}
-        <motion.p
-          initial={{ opacity: 0, y: 20, filter: 'blur(10px)' }}
-          animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
-          transition={{ duration: 0.8, delay: 0.3 }}
-          className="max-w-2xl mx-auto mb-4 text-lg font-light leading-relaxed text-gray-500 md:text-xl dark:text-gray-400"
-        >
-          Zero-code AI drug discovery. Paste a SMILES string,
-          get instant ADMET predictions across <span className="font-normal text-cyan-500 dark:text-cyan-400">9 trained models</span>.
-        </motion.p>
-
-        {/* Typewriter */}
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ duration: 0.6, delay: 0.5 }}
-          className="flex items-center justify-center h-14 mb-14"
-        >
-          <div className="relative px-6 py-2">
-            {/* Code-like wrapper */}
-            <span className="mr-1 font-mono text-lg text-gray-400/50 dark:text-gray-600"></span>
-            <span className="text-2xl font-light md:text-3xl">
-              <span className="text-transparent bg-gradient-to-r from-cyan-400 to-violet-400 bg-clip-text">
-                {typedText}
+    <section className="relative min-h-screen flex items-center overflow-hidden">
+      <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-32 pb-20 w-full">
+        <div className="max-w-2xl">
+          <motion.div
+            initial={{ opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6 }}
+          >
+            <span className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-medium tracking-wide border border-clay/25 dark:border-violet-500/20 bg-white/60 dark:bg-black/30 backdrop-blur-md text-clay-deep dark:text-violet-300">
+              <span className="relative flex w-2 h-2">
+                <span className="absolute inline-flex w-full h-full rounded-full opacity-75 animate-ping bg-violet-400" />
+                <span className="relative inline-flex w-2 h-2 rounded-full bg-violet-500" />
               </span>
-              <span className="animate-pulse text-violet-400 ml-0.5 font-light">|</span>
+              9 AI Models · Real-Time Predictions · Zero Code
             </span>
+          </motion.div>
+
+          <motion.h1
+            initial={{ opacity: 0, y: 24 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.7, delay: 0.1 }}
+            className="mt-8 font-display font-bold tracking-tight text-ink dark:text-white text-5xl sm:text-6xl lg:text-7xl leading-[1.05] [text-shadow:0_2px_24px_rgba(252,252,252,0.8)] dark:[text-shadow:0_2px_24px_rgba(17,24,39,0.85)]"
+          >
+            Predict Better
+            <br />
+            <span className={ACCENT_GRADIENT}>Molecules.</span>
+          </motion.h1>
+
+          <motion.p
+            initial={{ opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.7, delay: 0.2 }}
+            className="mt-6 text-lg leading-relaxed text-ink-soft dark:text-gray-300"
+          >
+            Zero-code AI drug discovery. Paste a SMILES string, get instant ADMET
+            predictions across <span className="font-semibold text-clay-deep dark:text-violet-400">9 trained models</span>.
+          </motion.p>
+
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.6, delay: 0.35 }}
+            className="flex items-center h-10 mt-6"
+          >
+            <span className="text-xl font-medium sm:text-2xl">
+              <span className={ACCENT_GRADIENT}>{typedText}</span>
+              <span className="animate-pulse text-violet-500 dark:text-violet-400 ml-0.5">|</span>
+            </span>
+          </motion.div>
+
+          <motion.div
+            initial={{ opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.7, delay: 0.45 }}
+            className="flex flex-col items-center gap-4 mt-10 sm:flex-row sm:justify-start"
+          >
+            <Link to="/app/analyze">
+              <ShimmerButton background="linear-gradient(135deg, #4D432D, #8B5CF6)">
+                <Beaker className="w-5 h-5" />
+                Open Lab Bench
+                <ArrowRight className="w-5 h-5" />
+              </ShimmerButton>
+            </Link>
+            <Link to="/app">
+              <GhostShimmerButton>
+                View Dashboard
+              </GhostShimmerButton>
+            </Link>
+          </motion.div>
+
+          <motion.p
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.6, duration: 0.5 }}
+            className="mt-6 text-xs tracking-wide text-ink-soft/70 dark:text-gray-400"
+          >
+            Free to use · No sign-up required · Powered by Intel AI
+            <span className="mx-2 text-paper-border dark:text-gray-700">·</span>
+            Background: live COX-2 (PDB 1CX2) — move your cursor, scroll the page
+          </motion.p>
+
+          <div className="grid max-w-lg grid-cols-2 gap-4 mt-14 sm:grid-cols-4">
+            {STATS.map((stat, i) => (
+              <StatCard key={stat.label} stat={stat} index={i} />
+            ))}
           </div>
-        </motion.div>
-
-        {/* CTAs */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.7, delay: 0.6 }}
-          className="flex flex-col items-center gap-4 sm:flex-row sm:justify-center"
-        >
-          <Link to="/app/analyze">
-            <ShimmerButton>
-              <Beaker className="w-5 h-5" />
-              Open Lab Bench
-              <ArrowRight className="w-5 h-5" />
-            </ShimmerButton>
-          </Link>
-          <Link to="/app">
-            <GhostShimmerButton>
-              View Dashboard
-            </GhostShimmerButton>
-          </Link>
-        </motion.div>
-
-        {/* Trust line */}
-        <motion.p
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.8, duration: 0.5 }}
-          className="mt-6 text-xs tracking-wide text-gray-400 dark:text-gray-500"
-        >
-          Free to use · No sign-up required · Powered by Intel AI
-        </motion.p>
-
-        {/* Stats bar */}
-        <div className="grid max-w-3xl grid-cols-2 gap-4 mx-auto mt-16 sm:grid-cols-4">
-          {STATS.map((stat, i) => (
-            <StatCard key={stat.label} stat={stat} index={i} />
-          ))}
         </div>
       </div>
-
-      {/* Scroll indicator — animated mouse */}
-      
-    </AuroraBackground>
+    </section>
   );
 };
 
 // ─── Section: Models Bento Grid ───────────────────────────────
 const ModelsSection = () => (
-  <section className="px-4 mx-auto py-28 max-w-7xl" id="features">
+  <section className="relative px-4 mx-auto py-28 max-w-7xl" id="features">
     <motion.div
       initial={{ opacity: 0, y: 30 }}
       whileInView={{ opacity: 1, y: 0 }}
@@ -252,14 +233,14 @@ const ModelsSection = () => (
       transition={{ duration: 0.6 }}
       className="mb-16 text-center"
     >
-      <GlassBadge variant="primary" className="inline-flex items-center mb-6 text-xs">
+      <span className="inline-flex items-center mb-6 px-3.5 py-1.5 rounded-full text-xs font-medium border border-clay/25 dark:border-violet-500/20 bg-white/60 dark:bg-black/30 backdrop-blur-md text-clay-deep dark:text-violet-300">
         <Beaker className="w-3 h-3 mr-1.5" />
         ADMET Prediction Suite
-      </GlassBadge>
-      <h2 className="mb-5 text-4xl font-thin text-gray-800 md:text-5xl dark:text-gray-100">
-        9 AI Models. <span className="text-transparent bg-gradient-to-r from-cyan-400 to-violet-400 bg-clip-text">One Platform.</span>
+      </span>
+      <h2 className="mb-5 font-display text-4xl font-bold text-ink md:text-5xl dark:text-white [text-shadow:0_2px_20px_rgba(252,252,252,0.9)] dark:[text-shadow:0_2px_20px_rgba(17,24,39,0.9)]">
+        9 AI Models. <span className={ACCENT_GRADIENT}>One Platform.</span>
       </h2>
-      <p className="max-w-2xl mx-auto text-lg leading-relaxed text-gray-500 dark:text-gray-400">
+      <p className="max-w-2xl mx-auto text-lg leading-relaxed text-ink-soft dark:text-gray-300">
         From ADMET profiling to target binding — run every prediction from a single interface.
         Each model is trained on curated pharmaceutical datasets.
       </p>
@@ -287,24 +268,27 @@ const HowItWorks = () => {
       num: '01',
       title: 'Paste SMILES',
       desc: 'Enter any valid SMILES notation — from aspirin to novel candidates.',
-      gradient: 'from-cyan-500 to-cyan-400',
+      colorFrom: '#4D432D',
+      colorTo: '#8B5CF6',
     },
     {
       num: '02',
       title: 'Run Models',
       desc: 'Select individual models or run all 9 simultaneously in one click.',
-      gradient: 'from-violet-500 to-violet-400',
+      colorFrom: '#8B5CF6',
+      colorTo: '#2DD4BF',
     },
     {
       num: '03',
       title: 'Get Insights',
       desc: 'Instant predictions with confidence scores, 3D visualization, and AI analysis.',
-      gradient: 'from-teal-500 to-teal-400',
+      colorFrom: '#2DD4BF',
+      colorTo: '#4D432D',
     },
   ];
 
   return (
-    <section className="max-w-5xl px-4 mx-auto py-28">
+    <section className="relative max-w-5xl px-4 mx-auto py-28" id="how-it-works">
       <motion.div
         initial={{ opacity: 0, y: 30 }}
         whileInView={{ opacity: 1, y: 0 }}
@@ -312,10 +296,10 @@ const HowItWorks = () => {
         transition={{ duration: 0.6 }}
         className="mb-16 text-center"
       >
-        <h2 className="mb-5 text-4xl font-thin text-gray-800 md:text-5xl dark:text-gray-100">
-          Input Once. <span className="text-transparent bg-gradient-to-r from-violet-400 to-teal-400 bg-clip-text">Analyze Everything.</span>
+        <h2 className="mb-5 font-display text-4xl font-bold text-ink md:text-5xl dark:text-white [text-shadow:0_2px_20px_rgba(252,252,252,0.9)] dark:[text-shadow:0_2px_20px_rgba(17,24,39,0.9)]">
+          Input Once. <span className={ACCENT_GRADIENT}>Analyze Everything.</span>
         </h2>
-        <p className="max-w-lg mx-auto text-lg text-gray-500 dark:text-gray-400">
+        <p className="max-w-lg mx-auto text-lg text-ink-soft dark:text-gray-300">
           Three steps from SMILES string to actionable drug discovery insights.
         </p>
       </motion.div>
@@ -330,32 +314,32 @@ const HowItWorks = () => {
             transition={{ delay: i * 0.15, duration: 0.6 }}
             className="relative group"
           >
-            <div className="relative overflow-hidden rounded-2xl border border-white/[0.08] dark:border-white/[0.08] border-gray-200/50 bg-white/[0.03] dark:bg-white/[0.03] bg-gray-50/80 p-8 h-full transition-all duration-300 hover:border-white/[0.2]">
-              {/* Border beam on cards */}
+            <div className="relative overflow-hidden rounded-2xl border border-paper-border/60 dark:border-white/[0.08] bg-white/85 dark:bg-white/[0.04] backdrop-blur-md p-8 h-full transition-all duration-300 hover:border-clay/40 dark:hover:border-white/[0.2]">
               <BorderBeam
                 size={120}
                 duration={8 + i * 2}
                 delay={i * 2}
-                colorFrom={i === 0 ? '#06b6d4' : i === 1 ? '#8b5cf6' : '#14b8a6'}
-                colorTo={i === 0 ? '#8b5cf6' : i === 1 ? '#14b8a6' : '#06b6d4'}
+                colorFrom={step.colorFrom}
+                colorTo={step.colorTo}
               />
 
-              {/* Step number */}
-              <span className={`text-6xl font-bold bg-gradient-to-b ${step.gradient} bg-clip-text text-transparent opacity-20 block mb-4`}>
+              <span
+                className="block mb-4 text-6xl font-bold opacity-15 bg-clip-text text-transparent bg-gradient-to-b"
+                style={{ backgroundImage: `linear-gradient(to bottom, ${step.colorFrom}, ${step.colorTo})` }}
+              >
                 {step.num}
               </span>
 
-              <h3 className="mb-3 text-xl font-semibold text-gray-800 dark:text-gray-100">
+              <h3 className="mb-3 text-xl font-semibold text-ink dark:text-white">
                 {step.title}
               </h3>
-              <p className="text-sm leading-relaxed text-gray-500 dark:text-gray-400">
+              <p className="text-sm leading-relaxed text-ink-soft dark:text-gray-400">
                 {step.desc}
               </p>
             </div>
 
-            {/* Connector arrow (between cards) */}
             {i < 2 && (
-              <div className="absolute z-10 hidden text-gray-300 md:flex top-1/2 -right-5 dark:text-gray-600">
+              <div className="absolute z-10 hidden text-paper-border md:flex top-1/2 -right-5 dark:text-gray-600">
                 <ArrowRight className="w-5 h-5" />
               </div>
             )}
@@ -368,7 +352,7 @@ const HowItWorks = () => {
 
 // ─── Section: CTA ─────────────────────────────────────────
 const CTASection = () => (
-  <section className="px-4 py-32 text-center">
+  <section className="relative px-4 py-32 text-center">
     <motion.div
       initial={{ opacity: 0, scale: 0.95 }}
       whileInView={{ opacity: 1, scale: 1 }}
@@ -376,24 +360,19 @@ const CTASection = () => (
       transition={{ duration: 0.7 }}
       className="relative max-w-3xl mx-auto"
     >
-      <div className="relative overflow-hidden rounded-3xl border border-white/[0.08] dark:border-white/[0.08] border-gray-200/50 bg-white/[0.03] dark:bg-white/[0.03] bg-gray-50/80 backdrop-blur-sm p-16">
-        <BorderBeam size={250} duration={14} colorFrom="#06b6d4" colorTo="#8b5cf6" />
+      <div className="relative overflow-hidden rounded-3xl border border-paper-border/60 dark:border-white/[0.08] bg-white/85 dark:bg-white/[0.04] backdrop-blur-md p-16">
+        <BorderBeam size={250} duration={14} colorFrom="#4D432D" colorTo="#8B5CF6" />
 
-        {/* Background glow */}
-        <div className="absolute inset-0 pointer-events-none bg-gradient-to-r from-cyan-500/5 via-transparent to-violet-500/5" />
-
-        <h2 className="relative mb-5 text-4xl font-thin text-gray-800 md:text-5xl dark:text-gray-100">
+        <h2 className="relative mb-5 font-display text-4xl font-bold text-ink md:text-5xl dark:text-white">
           Ready to accelerate your{' '}
-          <span className="text-transparent bg-gradient-to-r from-cyan-400 to-violet-400 bg-clip-text">
-            research
-          </span>?
+          <span className={ACCENT_GRADIENT}>research</span>?
         </h2>
-        <p className="relative max-w-xl mx-auto mb-10 text-lg leading-relaxed text-gray-500 dark:text-gray-400">
+        <p className="relative max-w-xl mx-auto mb-10 text-lg leading-relaxed text-ink-soft dark:text-gray-300">
           Join researchers using DrugForge to make faster, data-driven decisions in drug discovery.
         </p>
         <div className="relative">
           <Link to="/app/analyze">
-            <ShimmerButton>
+            <ShimmerButton background="linear-gradient(135deg, #4D432D, #8B5CF6)">
               Launch Lab Bench
               <ArrowRight className="w-5 h-5" />
             </ShimmerButton>
@@ -406,22 +385,22 @@ const CTASection = () => (
 
 // ─── Footer ─────────────────────────────────────────────
 const GlassFooter = () => (
-  <footer className="px-4 py-12 border-t border-white/[0.06] dark:border-white/[0.06] border-gray-200/30">
+  <footer className="relative px-4 py-12 bg-white/80 dark:bg-gray-900/80 backdrop-blur-md border-t border-paper-border/50 dark:border-white/[0.06]">
     <div className="flex flex-col items-center justify-between gap-6 mx-auto max-w-7xl md:flex-row">
       <div>
-        <span className="text-xl font-thin text-transparent bg-gradient-to-r from-cyan-400 to-violet-400 bg-clip-text">
+        <span className={`font-display text-xl font-bold ${ACCENT_GRADIENT}`}>
           DrugForge
         </span>
-        <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+        <p className="mt-1 text-xs text-ink-soft dark:text-gray-400">
           AI-Powered Drug Discovery Platform
         </p>
       </div>
-      <div className="flex gap-8 text-sm text-gray-500 dark:text-gray-400">
-        <a href="#features" className="transition-colors duration-200 hover:text-cyan-500">Features</a>
-        <Link to="/app" className="transition-colors duration-200 hover:text-cyan-500">Dashboard</Link>
-        <Link to="/app/analyze" className="transition-colors duration-200 hover:text-cyan-500">Lab Bench</Link>
+      <div className="flex gap-8 text-sm text-ink-soft dark:text-gray-400">
+        <a href="#features" className="transition-colors duration-200 hover:text-clay-deep dark:hover:text-violet-400">Features</a>
+        <Link to="/app" className="transition-colors duration-200 hover:text-clay-deep dark:hover:text-violet-400">Dashboard</Link>
+        <Link to="/app/analyze" className="transition-colors duration-200 hover:text-clay-deep dark:hover:text-violet-400">Lab Bench</Link>
       </div>
-      <p className="text-xs text-gray-500 dark:text-gray-400">
+      <p className="text-xs text-ink-soft dark:text-gray-400">
         © {new Date().getFullYear()} DrugForge. All rights reserved.
       </p>
     </div>
@@ -432,6 +411,7 @@ const GlassFooter = () => (
 const LandingPage = () => {
   return (
     <div className="relative overflow-hidden">
+      <WebGLBackground className="fixed inset-0 -z-10 pointer-events-none" />
       <HeroSection />
       <ModelsSection />
       <HowItWorks />

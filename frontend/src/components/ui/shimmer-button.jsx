@@ -103,11 +103,11 @@ export const GhostShimmerButton = React.forwardRef(
           className={cn(
             "group relative inline-flex items-center justify-center overflow-hidden",
             "px-8 py-4 text-lg font-medium rounded-full",
-            "text-gray-700 dark:text-gray-200",
-            "border border-white/20 dark:border-white/10",
-            "bg-white/5 dark:bg-white/5 backdrop-blur-sm",
-            "hover:bg-white/10 dark:hover:bg-white/10",
-            "hover:border-cyan-500/30",
+            "text-ink dark:text-gray-200",
+            "border border-ink/15 dark:border-white/10",
+            "bg-ink/[0.03] dark:bg-white/5 backdrop-blur-sm",
+            "hover:bg-ink/[0.06] dark:hover:bg-white/10",
+            "hover:border-clay/50 dark:hover:border-violet-500/30",
             "transition-all duration-300",
             className
           )}
