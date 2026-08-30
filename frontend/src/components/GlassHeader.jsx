@@ -29,9 +29,6 @@ const GlassHeader = () => {
               <a href="#features" className="px-4 py-2 text-sm text-gray-600 dark:text-gray-400 hover:text-cyan-500 transition-colors">
                 Features
               </a>
-              <a href="#pricing" className="px-4 py-2 text-sm text-gray-600 dark:text-gray-400 hover:text-cyan-500 transition-colors">
-                Pricing
-              </a>
             </nav>
 
             {/* Right side: theme + auth */}
@@ -72,9 +69,6 @@ const GlassHeader = () => {
                 <div className="pt-4 pb-2 space-y-1 border-t border-white/10 dark:border-gray-700/20 mt-3">
                   <a href="#features" onClick={() => setMobileMenuOpen(false)} className="block px-4 py-3 rounded-xl text-sm text-gray-600 dark:text-gray-400">
                     Features
-                  </a>
-                  <a href="#pricing" onClick={() => setMobileMenuOpen(false)} className="block px-4 py-3 rounded-xl text-sm text-gray-600 dark:text-gray-400">
-                    Pricing
                   </a>
                   <div className="flex gap-2 pt-2">
                     <Link to="/signin" onClick={() => setMobileMenuOpen(false)} className="flex-1 text-center px-4 py-2.5 text-sm rounded-xl bg-white/10 dark:bg-black/10 text-gray-700 dark:text-gray-300">

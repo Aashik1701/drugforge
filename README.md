@@ -615,6 +615,13 @@ predict.
 **Status: 🧪 built and evaluated as a research question. Results and their limits
 are below. This is not an "it works" claim.**
 
+> **Full write-up:** nine passes of offline evaluation (the 8-variant sweep, a
+> surrogate on real docking labels, two-phase and diversity seed selection, a
+> metric-degeneracy analysis, and the held-out ACE2 target) are synthesised in
+> **[`docs/FINDINGS.md`](docs/FINDINGS.md)**, with every number traced to a
+> committed artifact. The pass-by-pass log is
+> [`backend/app/funnel/CHANGELOG.md`](backend/app/funnel/CHANGELOG.md).
+
 Code: `backend/app/funnel/`. It is a deterministic, hardcoded policy with no LLM,
 no planner, and no candidate generation. Every filter threshold and ranking
 weight lives in one dataclass, `FunnelPolicy`, which is the seam a planner would
@@ -682,17 +689,24 @@ dock.
 
 Sweeping the docking budget N against the cached baseline:
 
-| N (docked) | Vina jobs | Docking-wall-clock saving | recall@5 literal | recall@5 tie-credited | recall@10 literal | recall@10 tie-credited |
+| N (docked) | Vina jobs | Docking-wall-clock saving | recall@10 literal | recall@10 tie-credited | recall@5 literal | recall@5 tie-credited |
 |---:|---:|---:|---:|---:|---:|---:|
-| 4 | 16 | about 11x | 1/5 | 2/5 | 2/10 | 6/10 |
-| 10 | 40 | about 4.0x | 2/5 | 4/5 | 5/10 | 9/10 |
-| 14 | 56 | about 3.3x | 3/5 | 4/5 | 6/10 | 9/10 |
-| 32 | 128 | about 1.7x | 5/5 | 5/5 | 9/10 | 10/10 |
+| 4 | 16 | about 11x | 2/10 | 6/10 | 1/5 | 2/5 |
+| 10 | 40 | about 4.0x | 5/10 | 9/10 | 2/5 | 4/5 |
+| 14 | 56 | about 3.3x | 6/10 | 9/10 | 3/5 | 4/5 |
+| 32 | 128 | about 1.7x | 9/10 | 10/10 | 5/5 | 5/5 |
+
+**recall@10 literal is the primary metric** (adopted in CHANGELOG Pass 8 after a
+degeneracy analysis found that 53% of recall@5 completion events across 34
+policies land on the exact dock of one molecule). **recall@5 is retained as a
+published secondary**, no recall@5 number anywhere in this project is
+retracted. See [`docs/FINDINGS.md`](docs/FINDINGS.md) "the metric itself".
 
 **Recommended operating point: N = 10.** That is about 4x less docking,
-recovering 2/5 literal (4/5 tie-credited) of the baseline's top-5 with 0 false
-negatives. Full literal recall@5 needs N = 32, where the saving drops to about
-1.7x. The funnel filters 4 of 45 candidates, so it can never dock more than 41.
+recovering 2/5 literal (4/5 tie-credited) of the baseline's top-5 and 5/10
+literal (9/10 tie-credited) of its top-10, with 0 false negatives. Full literal
+recall@5 needs N = 32, where the saving drops to about 1.7x. The funnel filters
+4 of 45 candidates, so it can never dock more than 41.
 
 ### The honest boundary
 
@@ -703,35 +717,75 @@ and `binding_score` puts it mid-pack. Across eight ranking variants tried in the
 offline sweep, none ranks it above about 30th of 41 survivors; literal recall@5
 stayed flat at 1/5 for every viable variant.
 
-The ceiling is the models, not the ranking formula. In this evaluation the cheap
-`cox2` model behaved more like a structural pattern detector (aspirin, ibuprofen,
-and naproxen all score P near 0) than a reliable docking proxy. A better funnel
-on this target needs a better binding predictor, or docking-aware features, not
-more weight tuning. The useful output of the harness here is that negative
-result, not a speedup number.
+An earlier reading of this was "the ceiling is the models, not the ranking
+formula." A later pass (CHANGELOG Pass 5) split that in two, and the split is
+the accurate statement:
+
+- **The out-of-distribution top docker is a data-coverage problem.** No
+  regression on ligand-only features (ECFP4 + descriptors) fitted on the real
+  docking labels recovers `CHEMBL2315019` either, it has no close structural
+  analogue in 45 molecules, so a leave-one-out model has nothing to interpolate
+  from. More candidates (so it has neighbours) or docking-aware features would
+  be needed, not a better cheap ranker.
+- **The mid-pack (baseline ranks ~6-20) was partly a ranking-formula problem.**
+  A surrogate on the *same* features the prescreen already had, fitted on real
+  docking labels, cuts the budget for full top-5 recovery from N about 32 to
+  N about 20-21 and for full top-10 from N about 36 to N about 21, a further ~1.4-1.5x
+  docking saving, holding for two independent models. That surrogate is
+  target-specific (it needs ~40 real docks to train) and is not a cold-start
+  prescreen, but it shows the frozen formula was leaving signal on the table
+  for the non-outlier hits.
+
+The cheap `cox2` model behaved more like a structural pattern detector (aspirin,
+ibuprofen, and naproxen all score P near 0) than a reliable docking proxy.
 
 > This benchmark is one target, one candidate set, one machine. It measures a
 > specific trade-off and names the failure mode. It is not evidence that a
 > cheap-screen funnel works in general.
 
-### Held-out target: `ace2_v1` (pre-registered, not yet run)
+### Held-out target: `ace2_v1` (pre-registered, run in CHANGELOG Pass 9)
 
 A second target was set up as a genuine hold-out. The `ace2_v1` candidate set
-(ChEMBL `CHEMBL3736`, 45 molecules) was built the same way. A prediction that
-ACE2 recall would be lower than COX-2 (Vina does not model ACE2's catalytic zinc;
-the ChEMBL set is one narrow chemotype) was written down and committed in
-`backend/app/funnel/CHANGELOG.md` before any evaluation, and the policy was
-frozen.
+(ChEMBL `CHEMBL3736`, 45 molecules, one narrow chemotype: Phe-Pro dipeptide
+mimics) was built the same way. A prediction that ACE2 recall would be **lower**
+than COX-2 for target-intrinsic reasons, Vina does not model ACE2's catalytic
+zinc, and the set is chemotype-narrow, was written down and committed before
+any evaluation, and the policy was frozen. The ACE2 docking box was also
+corrected first (the shipped box was about 70 Angstrom off the protein with zero
+receptor atoms inside it, a real product bug).
 
-The held-out baseline has not completed. Two docking runs on the reference
-machine were destroyed by host disk exhaustion. `runs/` contains no ACE2
-artifacts. The candidate set, the corrected docking box (the shipped ACE2 box was
-about 70 Angstrom off the protein and had zero receptor atoms inside it, a real
-product bug, since fixed), the pre-registered prediction, and the one-shot
-evaluation command are all committed. The number drops in when the baseline
-finishes on a machine with adequate free disk.
+The baseline (`runs/baseline_ace2_v1.json`, corrected Zn-centred box, docking
+config identical to cox2) then ran once, and the **unchanged** frozen v7 policy
+was scored against it once.
 
-Reproduction guide: [`REPRODUCTION.md`](REPRODUCTION.md).
+- **Completed: 39 of 45. Six candidates, all boronic acids, cannot be
+  docked**: AutoDock Vina has no atom type for boron, so they fail
+  deterministically at the file-parse step. Reported as **45 with 6 explicitly
+  excluded**; the denominator change was outside the pre-registration.
+- **0 false negatives.** No baseline top-5 or top-10 molecule was dropped by the
+  drug-likeness / toxicity filter.
+- **recall@10 literal (primary): 10/10 at N = 35** (cox2: N = 36).
+  recall@10 tie-credited: 10/10 at N = 24 (cox2: N = 32). recall@5 literal:
+  5/5 at N = 30 (cox2: N = 32); 1/5 at N = 10 (cox2: 2/5).
+- **Prediction verdict:** it holds for recall@5 and the early/middle of the
+  curve (ACE2 is lower everywhere through N about 24), but it is a **wash at full
+  recovery on the primary metric** (recall@10 N = 35 vs 36), and ACE2 *beats*
+  cox2 on tie-credited recall@10. The prediction was framed in the recall@5 era.
+- **Caveat, the tie threshold does not transfer.** ACE2 docking is about 3x
+  noisier than cox2 (median seed sigma 0.110 vs 0.036), so the frozen
+  `TIE_EPSILON = 0.10 kcal/mol`, calibrated on cox2, where it sat ~3x above the
+  noise floor, now sits *below* the ACE2 noise floor. The 0.10 numbers above
+  are reported as the pre-registered result; a per-set noise-calibrated epsilon
+  is the correct design going forward (see [`docs/FINDINGS.md`](docs/FINDINGS.md)
+  2).
+- **ACE2 is not degenerate the way cox2 is.** There is no single dominant hard
+  molecule; the cheap `binding_score` model has near-zero rank signal across the
+  whole peptidomimetic top-k (baseline top-10 at prescreen ranks median 18 of
+  38). Pass 8's finding that recall@10 is "less degenerate" turns out to be
+  cox2-specific.
+
+Reproduction guide: [`REPRODUCTION.md`](REPRODUCTION.md). Full analysis:
+[`docs/FINDINGS.md`](docs/FINDINGS.md), CHANGELOG Pass 9.
 
 ---
 
@@ -1311,13 +1365,27 @@ request auth) is future work, not in the codebase.
   classifiers and regressors on public benchmark datasets. A molecule outside
   that chemical space will get an unreliable score. No accuracy metrics are
   quoted here because none are committed to the repository.
-- The funnel benchmark is a single case study: one target, one 45-molecule set,
-  one machine. On that case the cheap pre-screen did not recover the baseline's
-  top hits at meaningful compute savings, and the reason (the cheap `cox2` model
-  acts as a structural pattern detector, not a binding proxy) is documented. Do
-  not generalise it.
-- The held-out ACE2 result does not exist yet. It is pre-registered and
-  reproducible, but unrun.
+- The funnel was evaluated on two targets (`cox2_v1`, `ace2_v1`), 45 molecules
+  each, one machine. On neither does the cheap pre-screen recover the baseline's
+  top hits at a meaningful compute saving. The shortfall has two documented
+  causes, a data-coverage problem for out-of-distribution top dockers, and a
+  ranking-formula problem for the mid-pack (partly fixable with real docking
+  labels, see [`docs/FINDINGS.md`](docs/FINDINGS.md)). Do not generalise the
+  numbers beyond these two sets.
+- Small benchmark sets are degenerate in a way that depends on how they were
+  sampled: a diverse source concentrates the difficulty in one or two
+  outliers (cox2), a narrow source spreads near-zero cheap-model signal across
+  the whole top-k (ace2). A single-target benchmark cannot tell you which you
+  have.
+- A tie threshold calibrated on one target does not transfer. `TIE_EPSILON`
+  (0.10 kcal/mol) sits above the docking's seed-noise floor on cox2 and below
+  it on ace2, which is ~3x noisier. Per-set noise calibration is the correct
+  design; the fixed constant's numbers stand as the pre-registered result.
+- Some chemistry is outside AutoDock Vina entirely. Boron has no AutoDock atom
+  type, so boronic-acid candidates (13% of `ace2_v1`) fail deterministically at
+  the parse step, no seed, exhaustiveness, or box change helps. Any docking
+  run over real medicinal-chemistry sets should pre-filter and report
+  un-scorable molecules rather than let them fail silently.
 - Generated or prioritised molecules require expert review. DrugForge narrows a
   list; it does not make decisions.
 - DrugForge is a research and software platform. Nothing here is medical advice,
@@ -1342,8 +1410,8 @@ autonomous behaviour in the codebase today.
 | Real AutoDock Vina docking, deterministic, with provenance | ✅ Implemented |
 | Compute modes plus runtime switching | ✅ Implemented |
 | Frontend: 5-screen app, lazy-loaded viewers, docking studio | ✅ Implemented |
-| Computational funnel plus baseline plus evaluation harness | 🧪 Built and evaluated (cox2_v1) |
-| Held-out funnel evaluation (ACE2) | 🧪 Pre-registered; baseline not yet run |
+| Computational funnel plus baseline plus evaluation harness | 🧪 Built; evaluated over 9 passes on cox2_v1 (see `docs/FINDINGS.md`) |
+| Held-out funnel evaluation (ACE2) | 🧪 Pre-registered and run (CHANGELOG Pass 9); frozen policy scored once |
 | Agent foundations (`AgentState`, `AgentBudget`, `ToolCall`, `AgentRunner`) | 🚧 Types plus deterministic loop exist; not endpoint-wired |
 | Minimal agent execution loop wired to an endpoint | 🚧 Next |
 | LLM-driven tool selection / planner | 📋 Planned |

@@ -2,9 +2,9 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { motion, useInView } from 'framer-motion';
 import {
-  Beaker, Brain, Shield, Zap, Check,
+  Beaker, Brain, Shield, Zap,
   FlaskConical, Activity, Target, Pill, BarChart3, Microscope,
-  ArrowRight, Star, Clock, Sparkles, ChevronDown, Mouse,
+  ArrowRight, Clock, Sparkles, ChevronDown, Mouse,
 } from 'lucide-react';
 
 // ─── Premium UI Components ─────────────────────────────────
@@ -83,33 +83,6 @@ const MODELS = [
   { name: 'HepG2 Cytotoxicity', icon: Microscope, desc: 'Hepatocyte cytotoxicity screening', color: 'sky' },
   { name: 'ACE2 Binding', icon: Brain, desc: 'ACE2 receptor binding prediction', color: 'violet' },
   { name: 'Binding Score', icon: BarChart3, desc: 'General protein-ligand binding affinity', color: 'cyan' },
-];
-
-const PRICING_PLANS = [
-  {
-    name: 'Student',
-    price: 'Free',
-    period: '',
-    features: ['3 models access', '50 predictions / month', 'Basic molecular viewer', 'Community support'],
-    cta: 'Start Free',
-    popular: false,
-  },
-  {
-    name: 'Researcher',
-    price: '$29',
-    period: '/month',
-    features: ['All 9 models', 'Unlimited predictions', 'Batch processing (CSV)', 'PDF report export', 'Priority support'],
-    cta: 'Start Trial',
-    popular: true,
-  },
-  {
-    name: 'Enterprise',
-    price: 'Custom',
-    period: '',
-    features: ['Everything in Researcher', 'On-premise deployment', 'Custom model training', 'SSO & SAML', 'Dedicated account manager'],
-    cta: 'Contact Sales',
-    popular: false,
-  },
 ];
 
 const STATS = [
@@ -393,88 +366,6 @@ const HowItWorks = () => {
   );
 };
 
-// ─── Section: Pricing ─────────────────────────────────────
-const PricingSection = () => (
-  <section className="max-w-6xl px-4 mx-auto py-28" id="pricing">
-    <motion.div
-      initial={{ opacity: 0, y: 30 }}
-      whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once: true, margin: "-100px" }}
-      transition={{ duration: 0.6 }}
-      className="mb-16 text-center"
-    >
-      <h2 className="mb-5 text-4xl font-thin text-gray-800 md:text-5xl dark:text-gray-100">
-        Simple <span className="text-transparent bg-gradient-to-r from-cyan-400 to-violet-400 bg-clip-text">Pricing</span>
-      </h2>
-      <p className="text-lg text-gray-500 dark:text-gray-400">
-        Start free. Upgrade when you need more.
-      </p>
-    </motion.div>
-
-    <div className="grid grid-cols-1 gap-8 md:grid-cols-3">
-      {PRICING_PLANS.map((plan, i) => (
-        <motion.div
-          key={plan.name}
-          initial={{ opacity: 0, y: 30 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={{ delay: i * 0.12, duration: 0.6 }}
-          className="relative"
-        >
-          <div
-            className={`relative overflow-hidden rounded-2xl h-full flex flex-col p-8
-              border ${plan.popular
-                ? 'border-cyan-500/40 bg-gradient-to-b from-cyan-500/[0.07] to-violet-500/[0.07]'
-                : 'border-white/[0.08] dark:border-white/[0.08] border-gray-200/50 bg-white/[0.03] dark:bg-white/[0.03] bg-gray-50/80'
-              }
-              transition-all duration-300 hover:border-white/[0.2]`}
-          >
-            {/* Border beam on popular plan */}
-            {plan.popular && (
-              <BorderBeam size={180} duration={10} colorFrom="#06b6d4" colorTo="#8b5cf6" />
-            )}
-
-            {plan.popular && (
-              <GlassBadge variant="primary" className="self-start mb-4 text-xs">
-                <Star className="w-3 h-3 mr-1" /> Most Popular
-              </GlassBadge>
-            )}
-
-            <h3 className="mb-2 text-xl font-semibold text-gray-800 dark:text-gray-200">
-              {plan.name}
-            </h3>
-            <div className="mb-6">
-              <span className="text-5xl font-bold text-gray-900 dark:text-white">
-                {plan.price}
-              </span>
-              <span className="ml-1 text-gray-500 dark:text-gray-400">{plan.period}</span>
-            </div>
-
-            <ul className="flex-1 mb-8 space-y-3">
-              {plan.features.map((f, j) => (
-                <li key={j} className="flex items-start gap-3 text-sm text-gray-600 dark:text-gray-300">
-                  <Check className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />
-                  <span>{f}</span>
-                </li>
-              ))}
-            </ul>
-
-            {plan.popular ? (
-              <ShimmerButton className="justify-center w-full py-3 text-base">
-                {plan.cta}
-              </ShimmerButton>
-            ) : (
-              <GhostShimmerButton className="justify-center w-full py-3 text-base">
-                {plan.cta}
-              </GhostShimmerButton>
-            )}
-          </div>
-        </motion.div>
-      ))}
-    </div>
-  </section>
-);
-
 // ─── Section: CTA ─────────────────────────────────────────
 const CTASection = () => (
   <section className="px-4 py-32 text-center">
@@ -527,7 +418,6 @@ const GlassFooter = () => (
       </div>
       <div className="flex gap-8 text-sm text-gray-500 dark:text-gray-400">
         <a href="#features" className="transition-colors duration-200 hover:text-cyan-500">Features</a>
-        <a href="#pricing" className="transition-colors duration-200 hover:text-cyan-500">Pricing</a>
         <Link to="/app" className="transition-colors duration-200 hover:text-cyan-500">Dashboard</Link>
         <Link to="/app/analyze" className="transition-colors duration-200 hover:text-cyan-500">Lab Bench</Link>
       </div>
@@ -545,7 +435,6 @@ const LandingPage = () => {
       <HeroSection />
       <ModelsSection />
       <HowItWorks />
-      <PricingSection />
       <CTASection />
       <GlassFooter />
     </div>

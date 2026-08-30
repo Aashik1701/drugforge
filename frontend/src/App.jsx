@@ -102,7 +102,7 @@ const AppContent = () => {
             <Route path="/batch-prediction" element={<Navigate to="/app/batch" replace />} />
             <Route path="/features" element={<Navigate to="/#features" replace />} />
             <Route path="/services" element={<Navigate to="/" replace />} />
-            <Route path="/pricing" element={<Navigate to="/#pricing" replace />} />
+            <Route path="/pricing" element={<Navigate to="/" replace />} />
             <Route path="/contact" element={<Navigate to="/" replace />} />
             <Route path="/profile" element={<Navigate to="/app/settings" replace />} />
             <Route path="/docking-studio" element={<Navigate to="/app/docking" replace />} />
