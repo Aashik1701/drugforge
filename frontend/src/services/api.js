@@ -90,6 +90,17 @@ export const computeService = {
   setMode: (mode) => apiClient.post('/api/compute/mode', { mode }),
 };
 
+// Computational funnel (screen -> dock top-N). A run is long (minutes to ~2h)
+// and serial by design; start returns a run_id, then poll status.
+export const funnelService = {
+  listSets: () => apiClient.get('/api/funnel/sets'),
+  getFrontier: (setId) => apiClient.get(`/api/funnel/frontier/${setId}`, { timeout: 15000 }),
+  start: (body) => apiClient.post('/api/funnel/start', body, { timeout: 20000 }),
+  getStatus: (runId) => apiClient.get(`/api/funnel/status/${runId}`, { timeout: 15000 }),
+  getResult: (runId) => apiClient.get(`/api/funnel/result/${runId}`, { timeout: 20000 }),
+  cancel: (runId) => apiClient.post(`/api/funnel/cancel/${runId}`, {}, { timeout: 10000 }),
+};
+
 export { apiClient };
 
 export default {
@@ -97,4 +108,5 @@ export default {
   healthService,
   dockingService,
   computeService,
+  funnelService,
 };

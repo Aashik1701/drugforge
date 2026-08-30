@@ -55,11 +55,25 @@ export default {
           dark: 'rgba(0, 0, 0, 0.2)',
           darker: 'rgba(0, 0, 0, 0.3)',
         },
+        // Protera-inspired editorial palette (landing page re-theme)
+        paper: {
+          DEFAULT: '#FCFCFC', // light-mode base surface
+          muted: '#E6E6E6',   // light-mode secondary surface
+          border: '#BABAB9',  // light-mode hairline border
+        },
+        ink: {
+          DEFAULT: '#0E0D0A', // near-black headline/body text (light mode)
+          soft: '#67645F',    // secondary/muted text (light mode)
+        },
+        clay: {
+          DEFAULT: '#8E7767', // warm structural accent
+          deep: '#4D432D',    // deep warm accent (badges, underlines)
+        },
       },
       fontFamily: {
         sans: ['Inter', 'SF Pro Display', 'system-ui', 'sans-serif'],
         mono: ['Roboto Mono', 'SF Mono', 'monospace'],
-        display: ['Inter', 'SF Pro Display', 'sans-serif'],
+        display: ['"Space Grotesk"', 'Inter', 'SF Pro Display', 'sans-serif'],
       },
       backdropBlur: {
         xs: '2px',

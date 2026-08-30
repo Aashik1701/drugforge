@@ -153,4 +153,22 @@ def build_default_registry() -> ToolRegistry:
         supports_remote=True,
     ))
 
+    # --- Funnel ----------------------------------------------------------
+    # A multi-stage run: cheap LOCAL screening, then a serial dock of the top-N
+    # survivors. HEAVY_LOCAL for the same reason docking is — it is gated by
+    # ResourceManager._check_heavy (docking must be enabled, a concurrency slot
+    # must be free) and created as a Job, never run inline. Unlike run_docking
+    # it is executed by an in-process asyncio task, not the LocalWorker, so
+    # supports_remote stays False. Its child docks are individual run_docking
+    # Jobs through the same path, so MAX_DOCKING_CONCURRENT is respected.
+    # See docs/development/funnel-service.md.
+    from funnel.service import execute_run as _funnel_execute
+    registry.register(Tool(
+        "run_funnel", "funnel",
+        "Run the computational funnel (frozen v7 policy): screen a candidate set, "
+        "then dock the top-N survivors. Returns a run_id; poll /api/funnel/status.",
+        _funnel_execute,
+        compute_class=ComputeClass.HEAVY_LOCAL,
+    ))
+
     return registry
