@@ -37,10 +37,23 @@ class AgentBudgetRequest(BaseModel):
 
 class AgentRunRequest(BaseModel):
     goal: str = Field("", description="Free-text label for the run (not interpreted).")
-    requests: list[AgentToolRequest] = Field(
-        ..., min_length=1, description="Ordered tool sequence. No planner -- executed as given."
+    requests: Optional[list[AgentToolRequest]] = Field(
+        None, min_length=1,
+        description="Ordered tool sequence, executed as given. Provide this OR plan_id, not both.",
+    )
+    plan_id: Optional[str] = Field(
+        None,
+        description="Execute a plan from POST /api/agent/plan. Its tool_sequence becomes `requests`.",
     )
     budget: Optional[AgentBudgetRequest] = None
+
+
+class PlanRequest(BaseModel):
+    """POST /api/agent/plan -- the LLM picks a docking budget N. Does not execute."""
+
+    goal: str = Field(..., min_length=1, description="Free-text discovery goal.")
+    candidate_set_id: str = Field(..., min_length=1, description="A committed set, e.g. 'cox2_v1'.")
+    target: str = Field(..., description="Docking target: 'cox2' or 'ace2'.")
 
 
 class AgentRunAccepted(BaseModel):

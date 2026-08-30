@@ -1,0 +1,691 @@
+{
+  "prompt_version": "v1",
+  "recommended_n": 10,
+  "repeats": 3,
+  "chooser": "stub_keyword_curve_reader",
+  "targets": {
+    "cox2_v1": {
+      "fixed_score": {
+        "N": 10,
+        "docked": 10,
+        "jobs": 40,
+        "est_dock_wall_s": 1776.5,
+        "speedup_vs_full": 4.0,
+        "recall5_literal": 2,
+        "recall5_tiecredit": 4,
+        "recall10_literal": 5,
+        "recall10_tiecredit": 9
+      },
+      "goals": [
+        {
+          "goal_id": "best_binder_cost_no_object",
+          "spirit": "recall",
+          "prompt": "Find the single best binder for this target. Cost is no object -- I want maximum confidence that the top-ranked candidate really is the strongest binder in the set.",
+          "chosen_n_runs": [
+            36,
+            36,
+            36
+          ],
+          "chosen_n_modal": 36,
+          "determinism_spread": {
+            "min": 36,
+            "max": 36,
+            "unique": [
+              36
+            ],
+            "stdev": 0.0
+          },
+          "rationale_sample": "goal signals spend-what-it-takes; go to the literal-recall knee (N=36)",
+          "planner_score": {
+            "N": 36,
+            "docked": 36,
+            "jobs": 144,
+            "est_dock_wall_s": 4795.2,
+            "speedup_vs_full": 1.5,
+            "recall5_literal": 5,
+            "recall5_tiecredit": 5,
+            "recall10_literal": 10,
+            "recall10_tiecredit": 10
+          },
+          "fixed_score": {
+            "N": 10,
+            "docked": 10,
+            "jobs": 40,
+            "est_dock_wall_s": 1776.5,
+            "speedup_vs_full": 4.0,
+            "recall5_literal": 2,
+            "recall5_tiecredit": 4,
+            "recall10_literal": 5,
+            "recall10_tiecredit": 9
+          },
+          "judgement": {
+            "priority_metric": "recall10_tiecredit",
+            "floor": 9,
+            "planner_priority_recall": 10,
+            "fixed_priority_recall": 9,
+            "planner_docked": 36,
+            "fixed_docked": 10,
+            "planner_meets_floor": true,
+            "fixed_meets_floor": true,
+            "pareto": "trade_off",
+            "verdict": "trade_off"
+          }
+        },
+        {
+          "goal_id": "top5_within_an_hour",
+          "spirit": "balanced",
+          "prompt": "I need the top 5 candidates and I have about an hour of compute to spend on docking. Use the budget well.",
+          "chosen_n_runs": [
+            32,
+            32,
+            32
+          ],
+          "chosen_n_modal": 32,
+          "determinism_spread": {
+            "min": 32,
+            "max": 32,
+            "unique": [
+              32
+            ],
+            "stdev": 0.0
+          },
+          "rationale_sample": "moderate goal; the tie-credited recall knee at N=32",
+          "planner_score": {
+            "N": 32,
+            "docked": 32,
+            "jobs": 128,
+            "est_dock_wall_s": 4320.5,
+            "speedup_vs_full": 1.7,
+            "recall5_literal": 5,
+            "recall5_tiecredit": 5,
+            "recall10_literal": 9,
+            "recall10_tiecredit": 10
+          },
+          "fixed_score": {
+            "N": 10,
+            "docked": 10,
+            "jobs": 40,
+            "est_dock_wall_s": 1776.5,
+            "speedup_vs_full": 4.0,
+            "recall5_literal": 2,
+            "recall5_tiecredit": 4,
+            "recall10_literal": 5,
+            "recall10_tiecredit": 9
+          },
+          "judgement": {
+            "priority_metric": "recall5_tiecredit",
+            "floor": null,
+            "planner_priority_recall": 5,
+            "fixed_priority_recall": 4,
+            "planner_docked": 32,
+            "fixed_docked": 10,
+            "planner_meets_floor": false,
+            "fixed_meets_floor": false,
+            "pareto": "trade_off",
+            "verdict": "trade_off"
+          }
+        },
+        {
+          "goal_id": "good_candidates_cheaply",
+          "spirit": "cheap",
+          "prompt": "Find some good candidates cheaply. I'm screening many candidate sets and cannot spend much compute on any one of them.",
+          "chosen_n_runs": [
+            3,
+            3,
+            3
+          ],
+          "chosen_n_modal": 3,
+          "determinism_spread": {
+            "min": 3,
+            "max": 3,
+            "unique": [
+              3
+            ],
+            "stdev": 0.0
+          },
+          "rationale_sample": "goal signals minimal compute; take the cheapest useful point",
+          "planner_score": {
+            "N": 3,
+            "docked": 3,
+            "jobs": 12,
+            "est_dock_wall_s": 555.4,
+            "speedup_vs_full": 12.8,
+            "recall5_literal": 0,
+            "recall5_tiecredit": 0,
+            "recall10_literal": 1,
+            "recall10_tiecredit": 3
+          },
+          "fixed_score": {
+            "N": 10,
+            "docked": 10,
+            "jobs": 40,
+            "est_dock_wall_s": 1776.5,
+            "speedup_vs_full": 4.0,
+            "recall5_literal": 2,
+            "recall5_tiecredit": 4,
+            "recall10_literal": 5,
+            "recall10_tiecredit": 9
+          },
+          "judgement": {
+            "priority_metric": "recall10_tiecredit",
+            "floor": null,
+            "planner_priority_recall": 3,
+            "fixed_priority_recall": 9,
+            "planner_docked": 3,
+            "fixed_docked": 10,
+            "planner_meets_floor": false,
+            "fixed_meets_floor": false,
+            "pareto": "trade_off",
+            "verdict": "planner_better"
+          }
+        },
+        {
+          "goal_id": "recover_8_of_top_10",
+          "spirit": "recall",
+          "prompt": "I need to recover at least 8 of the true top-10 binders by docking score. Spend whatever docking budget that takes.",
+          "chosen_n_runs": [
+            36,
+            36,
+            36
+          ],
+          "chosen_n_modal": 36,
+          "determinism_spread": {
+            "min": 36,
+            "max": 36,
+            "unique": [
+              36
+            ],
+            "stdev": 0.0
+          },
+          "rationale_sample": "goal signals spend-what-it-takes; go to the literal-recall knee (N=36)",
+          "planner_score": {
+            "N": 36,
+            "docked": 36,
+            "jobs": 144,
+            "est_dock_wall_s": 4795.2,
+            "speedup_vs_full": 1.5,
+            "recall5_literal": 5,
+            "recall5_tiecredit": 5,
+            "recall10_literal": 10,
+            "recall10_tiecredit": 10
+          },
+          "fixed_score": {
+            "N": 10,
+            "docked": 10,
+            "jobs": 40,
+            "est_dock_wall_s": 1776.5,
+            "speedup_vs_full": 4.0,
+            "recall5_literal": 2,
+            "recall5_tiecredit": 4,
+            "recall10_literal": 5,
+            "recall10_tiecredit": 9
+          },
+          "judgement": {
+            "priority_metric": "recall10_literal",
+            "floor": 8,
+            "planner_priority_recall": 10,
+            "fixed_priority_recall": 5,
+            "planner_docked": 36,
+            "fixed_docked": 10,
+            "planner_meets_floor": true,
+            "fixed_meets_floor": false,
+            "pareto": "trade_off",
+            "verdict": "planner_better"
+          }
+        },
+        {
+          "goal_id": "solid_shortlist_reasonable_cost",
+          "spirit": "balanced",
+          "prompt": "Give me a solid shortlist with a reasonable amount of compute -- nothing extreme in either direction.",
+          "chosen_n_runs": [
+            10,
+            10,
+            10
+          ],
+          "chosen_n_modal": 10,
+          "determinism_spread": {
+            "min": 10,
+            "max": 10,
+            "unique": [
+              10
+            ],
+            "stdev": 0.0
+          },
+          "rationale_sample": "no strong signal either way; use the recommended operating point",
+          "planner_score": {
+            "N": 10,
+            "docked": 10,
+            "jobs": 40,
+            "est_dock_wall_s": 1776.5,
+            "speedup_vs_full": 4.0,
+            "recall5_literal": 2,
+            "recall5_tiecredit": 4,
+            "recall10_literal": 5,
+            "recall10_tiecredit": 9
+          },
+          "fixed_score": {
+            "N": 10,
+            "docked": 10,
+            "jobs": 40,
+            "est_dock_wall_s": 1776.5,
+            "speedup_vs_full": 4.0,
+            "recall5_literal": 2,
+            "recall5_tiecredit": 4,
+            "recall10_literal": 5,
+            "recall10_tiecredit": 9
+          },
+          "judgement": {
+            "priority_metric": "recall10_tiecredit",
+            "floor": null,
+            "planner_priority_recall": 9,
+            "fixed_priority_recall": 9,
+            "planner_docked": 10,
+            "fixed_docked": 10,
+            "planner_meets_floor": false,
+            "fixed_meets_floor": false,
+            "pareto": "trade_off",
+            "verdict": "equivalent"
+          }
+        },
+        {
+          "goal_id": "quick_exploratory_look",
+          "spirit": "cheap",
+          "prompt": "Quick exploratory look. I just want a rough sense of which few molecules are worth a closer look later. Keep compute to a minimum.",
+          "chosen_n_runs": [
+            3,
+            3,
+            3
+          ],
+          "chosen_n_modal": 3,
+          "determinism_spread": {
+            "min": 3,
+            "max": 3,
+            "unique": [
+              3
+            ],
+            "stdev": 0.0
+          },
+          "rationale_sample": "goal signals minimal compute; take the cheapest useful point",
+          "planner_score": {
+            "N": 3,
+            "docked": 3,
+            "jobs": 12,
+            "est_dock_wall_s": 555.4,
+            "speedup_vs_full": 12.8,
+            "recall5_literal": 0,
+            "recall5_tiecredit": 0,
+            "recall10_literal": 1,
+            "recall10_tiecredit": 3
+          },
+          "fixed_score": {
+            "N": 10,
+            "docked": 10,
+            "jobs": 40,
+            "est_dock_wall_s": 1776.5,
+            "speedup_vs_full": 4.0,
+            "recall5_literal": 2,
+            "recall5_tiecredit": 4,
+            "recall10_literal": 5,
+            "recall10_tiecredit": 9
+          },
+          "judgement": {
+            "priority_metric": "recall10_tiecredit",
+            "floor": null,
+            "planner_priority_recall": 3,
+            "fixed_priority_recall": 9,
+            "planner_docked": 3,
+            "fixed_docked": 10,
+            "planner_meets_floor": false,
+            "fixed_meets_floor": false,
+            "pareto": "trade_off",
+            "verdict": "planner_better"
+          }
+        }
+      ]
+    },
+    "ace2_v1": {
+      "fixed_score": {
+        "N": 10,
+        "docked": 10,
+        "jobs": 40,
+        "est_dock_wall_s": 3232.2,
+        "speedup_vs_full": 2.9,
+        "recall5_literal": 1,
+        "recall5_tiecredit": 1,
+        "recall10_literal": 2,
+        "recall10_tiecredit": 4
+      },
+      "goals": [
+        {
+          "goal_id": "best_binder_cost_no_object",
+          "spirit": "recall",
+          "prompt": "Find the single best binder for this target. Cost is no object -- I want maximum confidence that the top-ranked candidate really is the strongest binder in the set.",
+          "chosen_n_runs": [
+            35,
+            35,
+            35
+          ],
+          "chosen_n_modal": 35,
+          "determinism_spread": {
+            "min": 35,
+            "max": 35,
+            "unique": [
+              35
+            ],
+            "stdev": 0.0
+          },
+          "rationale_sample": "goal signals spend-what-it-takes; go to the literal-recall knee (N=35)",
+          "planner_score": {
+            "N": 35,
+            "docked": 35,
+            "jobs": 140,
+            "est_dock_wall_s": 6948.4,
+            "speedup_vs_full": 1.3,
+            "recall5_literal": 5,
+            "recall5_tiecredit": 5,
+            "recall10_literal": 10,
+            "recall10_tiecredit": 10
+          },
+          "fixed_score": {
+            "N": 10,
+            "docked": 10,
+            "jobs": 40,
+            "est_dock_wall_s": 3232.2,
+            "speedup_vs_full": 2.9,
+            "recall5_literal": 1,
+            "recall5_tiecredit": 1,
+            "recall10_literal": 2,
+            "recall10_tiecredit": 4
+          },
+          "judgement": {
+            "priority_metric": "recall10_tiecredit",
+            "floor": 9,
+            "planner_priority_recall": 10,
+            "fixed_priority_recall": 4,
+            "planner_docked": 35,
+            "fixed_docked": 10,
+            "planner_meets_floor": true,
+            "fixed_meets_floor": false,
+            "pareto": "trade_off",
+            "verdict": "planner_better"
+          }
+        },
+        {
+          "goal_id": "top5_within_an_hour",
+          "spirit": "balanced",
+          "prompt": "I need the top 5 candidates and I have about an hour of compute to spend on docking. Use the budget well.",
+          "chosen_n_runs": [
+            24,
+            24,
+            24
+          ],
+          "chosen_n_modal": 24,
+          "determinism_spread": {
+            "min": 24,
+            "max": 24,
+            "unique": [
+              24
+            ],
+            "stdev": 0.0
+          },
+          "rationale_sample": "moderate goal; the tie-credited recall knee at N=24",
+          "planner_score": {
+            "N": 24,
+            "docked": 24,
+            "jobs": 96,
+            "est_dock_wall_s": 5639.4,
+            "speedup_vs_full": 1.7,
+            "recall5_literal": 4,
+            "recall5_tiecredit": 5,
+            "recall10_literal": 7,
+            "recall10_tiecredit": 10
+          },
+          "fixed_score": {
+            "N": 10,
+            "docked": 10,
+            "jobs": 40,
+            "est_dock_wall_s": 3232.2,
+            "speedup_vs_full": 2.9,
+            "recall5_literal": 1,
+            "recall5_tiecredit": 1,
+            "recall10_literal": 2,
+            "recall10_tiecredit": 4
+          },
+          "judgement": {
+            "priority_metric": "recall5_tiecredit",
+            "floor": null,
+            "planner_priority_recall": 5,
+            "fixed_priority_recall": 1,
+            "planner_docked": 24,
+            "fixed_docked": 10,
+            "planner_meets_floor": false,
+            "fixed_meets_floor": false,
+            "pareto": "trade_off",
+            "verdict": "trade_off"
+          }
+        },
+        {
+          "goal_id": "good_candidates_cheaply",
+          "spirit": "cheap",
+          "prompt": "Find some good candidates cheaply. I'm screening many candidate sets and cannot spend much compute on any one of them.",
+          "chosen_n_runs": [
+            3,
+            3,
+            3
+          ],
+          "chosen_n_modal": 3,
+          "determinism_spread": {
+            "min": 3,
+            "max": 3,
+            "unique": [
+              3
+            ],
+            "stdev": 0.0
+          },
+          "rationale_sample": "goal signals minimal compute; take the cheapest useful point",
+          "planner_score": {
+            "N": 3,
+            "docked": 3,
+            "jobs": 12,
+            "est_dock_wall_s": 748.9,
+            "speedup_vs_full": 12.4,
+            "recall5_literal": 1,
+            "recall5_tiecredit": 1,
+            "recall10_literal": 1,
+            "recall10_tiecredit": 1
+          },
+          "fixed_score": {
+            "N": 10,
+            "docked": 10,
+            "jobs": 40,
+            "est_dock_wall_s": 3232.2,
+            "speedup_vs_full": 2.9,
+            "recall5_literal": 1,
+            "recall5_tiecredit": 1,
+            "recall10_literal": 2,
+            "recall10_tiecredit": 4
+          },
+          "judgement": {
+            "priority_metric": "recall10_tiecredit",
+            "floor": null,
+            "planner_priority_recall": 1,
+            "fixed_priority_recall": 4,
+            "planner_docked": 3,
+            "fixed_docked": 10,
+            "planner_meets_floor": false,
+            "fixed_meets_floor": false,
+            "pareto": "trade_off",
+            "verdict": "planner_better"
+          }
+        },
+        {
+          "goal_id": "recover_8_of_top_10",
+          "spirit": "recall",
+          "prompt": "I need to recover at least 8 of the true top-10 binders by docking score. Spend whatever docking budget that takes.",
+          "chosen_n_runs": [
+            35,
+            35,
+            35
+          ],
+          "chosen_n_modal": 35,
+          "determinism_spread": {
+            "min": 35,
+            "max": 35,
+            "unique": [
+              35
+            ],
+            "stdev": 0.0
+          },
+          "rationale_sample": "goal signals spend-what-it-takes; go to the literal-recall knee (N=35)",
+          "planner_score": {
+            "N": 35,
+            "docked": 35,
+            "jobs": 140,
+            "est_dock_wall_s": 6948.4,
+            "speedup_vs_full": 1.3,
+            "recall5_literal": 5,
+            "recall5_tiecredit": 5,
+            "recall10_literal": 10,
+            "recall10_tiecredit": 10
+          },
+          "fixed_score": {
+            "N": 10,
+            "docked": 10,
+            "jobs": 40,
+            "est_dock_wall_s": 3232.2,
+            "speedup_vs_full": 2.9,
+            "recall5_literal": 1,
+            "recall5_tiecredit": 1,
+            "recall10_literal": 2,
+            "recall10_tiecredit": 4
+          },
+          "judgement": {
+            "priority_metric": "recall10_literal",
+            "floor": 8,
+            "planner_priority_recall": 10,
+            "fixed_priority_recall": 2,
+            "planner_docked": 35,
+            "fixed_docked": 10,
+            "planner_meets_floor": true,
+            "fixed_meets_floor": false,
+            "pareto": "trade_off",
+            "verdict": "planner_better"
+          }
+        },
+        {
+          "goal_id": "solid_shortlist_reasonable_cost",
+          "spirit": "balanced",
+          "prompt": "Give me a solid shortlist with a reasonable amount of compute -- nothing extreme in either direction.",
+          "chosen_n_runs": [
+            10,
+            10,
+            10
+          ],
+          "chosen_n_modal": 10,
+          "determinism_spread": {
+            "min": 10,
+            "max": 10,
+            "unique": [
+              10
+            ],
+            "stdev": 0.0
+          },
+          "rationale_sample": "no strong signal either way; use the recommended operating point",
+          "planner_score": {
+            "N": 10,
+            "docked": 10,
+            "jobs": 40,
+            "est_dock_wall_s": 3232.2,
+            "speedup_vs_full": 2.9,
+            "recall5_literal": 1,
+            "recall5_tiecredit": 1,
+            "recall10_literal": 2,
+            "recall10_tiecredit": 4
+          },
+          "fixed_score": {
+            "N": 10,
+            "docked": 10,
+            "jobs": 40,
+            "est_dock_wall_s": 3232.2,
+            "speedup_vs_full": 2.9,
+            "recall5_literal": 1,
+            "recall5_tiecredit": 1,
+            "recall10_literal": 2,
+            "recall10_tiecredit": 4
+          },
+          "judgement": {
+            "priority_metric": "recall10_tiecredit",
+            "floor": null,
+            "planner_priority_recall": 4,
+            "fixed_priority_recall": 4,
+            "planner_docked": 10,
+            "fixed_docked": 10,
+            "planner_meets_floor": false,
+            "fixed_meets_floor": false,
+            "pareto": "trade_off",
+            "verdict": "equivalent"
+          }
+        },
+        {
+          "goal_id": "quick_exploratory_look",
+          "spirit": "cheap",
+          "prompt": "Quick exploratory look. I just want a rough sense of which few molecules are worth a closer look later. Keep compute to a minimum.",
+          "chosen_n_runs": [
+            3,
+            3,
+            3
+          ],
+          "chosen_n_modal": 3,
+          "determinism_spread": {
+            "min": 3,
+            "max": 3,
+            "unique": [
+              3
+            ],
+            "stdev": 0.0
+          },
+          "rationale_sample": "goal signals minimal compute; take the cheapest useful point",
+          "planner_score": {
+            "N": 3,
+            "docked": 3,
+            "jobs": 12,
+            "est_dock_wall_s": 748.9,
+            "speedup_vs_full": 12.4,
+            "recall5_literal": 1,
+            "recall5_tiecredit": 1,
+            "recall10_literal": 1,
+            "recall10_tiecredit": 1
+          },
+          "fixed_score": {
+            "N": 10,
+            "docked": 10,
+            "jobs": 40,
+            "est_dock_wall_s": 3232.2,
+            "speedup_vs_full": 2.9,
+            "recall5_literal": 1,
+            "recall5_tiecredit": 1,
+            "recall10_literal": 2,
+            "recall10_tiecredit": 4
+          },
+          "judgement": {
+            "priority_metric": "recall10_tiecredit",
+            "floor": null,
+            "planner_priority_recall": 1,
+            "fixed_priority_recall": 4,
+            "planner_docked": 3,
+            "fixed_docked": 10,
+            "planner_meets_floor": false,
+            "fixed_meets_floor": false,
+            "pareto": "trade_off",
+            "verdict": "planner_better"
+          }
+        }
+      ]
+    }
+  },
+  "verdict_tally": {
+    "trade_off": 3,
+    "planner_better": 7,
+    "equivalent": 2
+  }
+}

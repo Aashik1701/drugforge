@@ -22,8 +22,9 @@ import uuid
 
 from fastapi import APIRouter, HTTPException
 
+from agents import planner as planner_mod
 from agents import service
-from schemas.agent import AgentRunAccepted, AgentRunRequest
+from schemas.agent import AgentRunAccepted, AgentRunRequest, AgentToolRequest, PlanRequest
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
@@ -32,6 +33,44 @@ router = APIRouter()
 def _job_store():
     from main import job_store
     return job_store
+
+
+@router.post("/plan")
+async def make_agent_plan(req: PlanRequest) -> dict:
+    """An LLM reads the goal + candidate-set metadata + the cached frontier and
+    picks the docking budget N. Returns a plan; does NOT execute. Run it with
+    POST /api/agent/runs {plan_id}. See docs/development/agent-planner.md."""
+    try:
+        plan = await asyncio.to_thread(
+            planner_mod.make_plan, req.goal, req.candidate_set_id, req.target
+        )
+    except planner_mod.PlannerUnavailable as exc:
+        raise HTTPException(status_code=503, detail=str(exc))
+    except planner_mod.PlannerError as exc:
+        raise HTTPException(status_code=exc.status, detail=exc.detail)
+
+    job_store = _job_store()
+    plan_id = f"plan_{uuid.uuid4().hex[:12]}"
+    from jobs.models import JobStatus
+
+    await job_store.create_job(
+        job_type="agent_plan",
+        job_input={"goal": req.goal, "candidate_set_id": req.candidate_set_id, "target": req.target},
+        job_id=plan_id,
+    )
+    plan_doc = {"plan_id": plan_id, **plan}
+    await job_store.update_job(plan_id, status=JobStatus.COMPLETED, output=plan_doc)
+    logger.info("agent_plan_made plan_id=%s set=%s target=%s chosen_n=%d",
+                plan_id, req.candidate_set_id, req.target, plan["chosen_n"])
+    return plan_doc
+
+
+@router.get("/plans/{plan_id}")
+async def get_agent_plan(plan_id: str) -> dict:
+    job = await _job_store().get_job(plan_id)
+    if job is None or job.type != "agent_plan":
+        raise HTTPException(status_code=404, detail=f"no plan '{plan_id}'")
+    return job.output or {}
 
 
 @router.get("/tools")
@@ -44,6 +83,29 @@ async def agent_tools() -> list[dict]:
 
 @router.post("/runs", response_model=AgentRunAccepted)
 async def start_agent_run(req: AgentRunRequest) -> AgentRunAccepted:
+    job_store = _job_store()
+
+    # --- resolve the tool sequence: an inspected plan, or a caller-supplied list ---
+    if bool(req.plan_id) == bool(req.requests):
+        raise HTTPException(
+            status_code=400,
+            detail="provide exactly one of plan_id or requests",
+        )
+    plan_id = req.plan_id
+    if plan_id:
+        plan_job = await job_store.get_job(plan_id)
+        if plan_job is None or plan_job.type != "agent_plan":
+            raise HTTPException(status_code=404, detail=f"no plan '{plan_id}'")
+        seq = (plan_job.output or {}).get("tool_sequence") or []
+        try:
+            requests = [AgentToolRequest(**step) for step in seq]
+        except Exception as exc:  # a stored plan that no longer parses
+            raise HTTPException(status_code=400, detail=f"plan '{plan_id}' tool_sequence is invalid: {exc}")
+        goal = req.goal or (plan_job.output or {}).get("goal", "")
+    else:
+        requests = req.requests
+        goal = req.goal
+
     # --- budget: clamp client input to the server ceilings (never raise) ---
     try:
         effective, ceilings, clamped = service.clamp_budget(
@@ -53,12 +115,12 @@ async def start_agent_run(req: AgentRunRequest) -> AgentRunAccepted:
         raise HTTPException(status_code=exc.status, detail=exc.detail)
 
     # --- validate the whole sequence before any Job row exists ---
+    # (a plan-emitted sequence was validated at /plan time too; re-checked here
+    #  because /runs is the single gate every run passes through)
     try:
-        heavy = service.validate_submission(req.requests, effective)
+        heavy = service.validate_submission(requests, effective)
     except service.AgentInputError as exc:
         raise HTTPException(status_code=exc.status, detail=exc.detail)
-
-    job_store = _job_store()
 
     # one agent run at a time (AgentBudget.max_concurrent_runs_local)
     active = await job_store.count_active("agent")
@@ -79,8 +141,9 @@ async def start_agent_run(req: AgentRunRequest) -> AgentRunAccepted:
 
     run_id = f"agent_{uuid.uuid4().hex[:12]}"
     job_input = {
-        "goal": req.goal,
-        "requests": [r.model_dump() for r in req.requests],
+        "goal": goal,
+        "plan_id": plan_id,
+        "requests": [r.model_dump() for r in requests],
         "effective_budget": {
             "max_candidates": effective.max_candidates,
             "max_docking_jobs": effective.max_docking_jobs,
@@ -99,14 +162,16 @@ async def start_agent_run(req: AgentRunRequest) -> AgentRunAccepted:
         lambda t: t.exception() and logger.error("agent task crashed run_id=%s: %r", run_id, t.exception())
     )
 
-    logger.info("agent_run_queued run_id=%s steps=%d heavy=%d", run_id, len(req.requests), len(heavy))
+    logger.info("agent_run_queued run_id=%s plan_id=%s steps=%d heavy=%d",
+                run_id, plan_id, len(requests), len(heavy))
     return AgentRunAccepted(
         run_id=run_id,
         status="queued",
-        accepted_steps=len(req.requests),
+        accepted_steps=len(requests),
         heavy_steps=len(heavy),
         budget={"effective": job_input["effective_budget"], "ceilings": ceilings, "clamped": clamped},
-        message=f"agent run queued ({len(req.requests)} steps, {len(heavy)} heavy)",
+        message=f"agent run queued ({len(requests)} steps, {len(heavy)} heavy"
+                + (f", from {plan_id}" if plan_id else "") + ")",
     )
 
 

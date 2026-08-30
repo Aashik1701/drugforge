@@ -1,0 +1,49 @@
+{
+  "pre_registered": "2026-08-30",
+  "recommended_n": 10,
+  "goals_sha256": "b3097ba7f7b5e7479c7c90165c05da4efeb9faf1acf81476f828ce398f84d0d4",
+  "goals": [
+    {
+      "id": "best_binder_cost_no_object",
+      "prompt": "Find the single best binder for this target. Cost is no object -- I want maximum confidence that the top-ranked candidate really is the strongest binder in the set.",
+      "priority": "recall10_tiecredit",
+      "floor": 9,
+      "spirit": "recall"
+    },
+    {
+      "id": "top5_within_an_hour",
+      "prompt": "I need the top 5 candidates and I have about an hour of compute to spend on docking. Use the budget well.",
+      "priority": "recall5_tiecredit",
+      "floor": null,
+      "spirit": "balanced"
+    },
+    {
+      "id": "good_candidates_cheaply",
+      "prompt": "Find some good candidates cheaply. I'm screening many candidate sets and cannot spend much compute on any one of them.",
+      "priority": "recall10_tiecredit",
+      "floor": null,
+      "spirit": "cheap"
+    },
+    {
+      "id": "recover_8_of_top_10",
+      "prompt": "I need to recover at least 8 of the true top-10 binders by docking score. Spend whatever docking budget that takes.",
+      "priority": "recall10_literal",
+      "floor": 8,
+      "spirit": "recall"
+    },
+    {
+      "id": "solid_shortlist_reasonable_cost",
+      "prompt": "Give me a solid shortlist with a reasonable amount of compute -- nothing extreme in either direction.",
+      "priority": "recall10_tiecredit",
+      "floor": null,
+      "spirit": "balanced"
+    },
+    {
+      "id": "quick_exploratory_look",
+      "prompt": "Quick exploratory look. I just want a rough sense of which few molecules are worth a closer look later. Keep compute to a minimum.",
+      "priority": "recall10_tiecredit",
+      "floor": null,
+      "spirit": "cheap"
+    }
+  ]
+}
