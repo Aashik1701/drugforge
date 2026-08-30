@@ -1299,6 +1299,19 @@ offline. Artifacts: `runs/baseline_ace2_v1.json`, `runs/features_ace2_v1.json`,
 > as "the shipped models have no signal on ACE2," not "no signal is available
 > there." No number in this Pass 9 entry changes.
 
+> **Correction note appended 2026-08-30 (from the Phase-4 planner pass, not an
+> edit to the above).** The README's "recommended operating point: N = 10" is a
+> **cox2-calibrated** number and does not transfer to ACE2. From the committed
+> frontiers: `cox2_v1` at N=10 -> recall@10 tie-credited **9/10** (N=10 is the
+> first budget past 8/10, i.e. it sits at the knee); `ace2_v1` at N=10 ->
+> **4/10** tie-credited, identical to N=8, on the flat pre-knee stretch. The
+> `ace2_v1` frontier knee is **N=13** (-> 8/10, for +3 docks / ~+555 s) and it
+> reaches 10/10 tie-credited at **N=24**. The portable recommendation is to read
+> the target's own frontier knee (`GET /api/funnel/frontier/{set_id}`), not
+> carry N=10 across targets. Verified from `runs/frontier_cox2_v1.csv` and
+> `runs/frontier_ace2_v1.csv`; no number in this Pass 9 entry changes. See
+> `docs/FINDINGS.md` Stage 6 correction, General result #4, and Stage 9.
+
 ---
 
 # Pass 10 -- PRE-REGISTRATION: do receptor-aware features predict Vina affinity where fingerprints cannot? (2026-08-30)

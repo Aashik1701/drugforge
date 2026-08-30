@@ -17,7 +17,10 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
+import re
 import statistics
+import time
 from collections import Counter
 from pathlib import Path
 
@@ -30,6 +33,36 @@ from funnel.service import load_frontier
 TARGETS = {"cox2": "cox2_v1", "ace2": "ace2_v1"}
 REPEATS = 3
 RUNS_DIR = Path(__file__).resolve().parents[3] / "runs"
+
+# The configured key is on the Gemini free tier (5 requests/min). Pace calls so a
+# 36-call run stays under that -- this is rate-limit compliance, not a tuning
+# knob. Overridable via PLAN_EVAL_CALL_SPACING_S.
+CALL_SPACING_S = float(os.getenv("PLAN_EVAL_CALL_SPACING_S", "20"))
+_last_call = [0.0]
+
+
+def _paced_make_plan(prompt, sid, tname):
+    """make_plan with client-side pacing (the configured key is Gemini free
+    tier, ~5-20 req/min) + waits on a 429 using the server's own retry hint.
+    NOT the unparseable-output retry -- that cap lives in the planner, untouched.
+    The LLM parameters (model, temperature) are never changed."""
+    for attempt in range(10):
+        wait = CALL_SPACING_S - (time.monotonic() - _last_call[0])
+        if wait > 0:
+            time.sleep(wait)
+        _last_call[0] = time.monotonic()
+        try:
+            return make_plan(prompt, sid, tname)
+        except Exception as exc:  # google.genai ClientError 429
+            msg = str(exc)
+            if "RESOURCE_EXHAUSTED" not in msg and "429" not in msg:
+                raise
+            m = re.search(r"retry in ([0-9.]+)s", msg)
+            delay = min(float(m.group(1)) if m else 30.0, 90.0)
+            print(f"  [429] rate-limited; sleeping {delay + 3:.0f}s (wait {attempt + 1}/10)", flush=True)
+            time.sleep(delay + 3)
+            _last_call[0] = time.monotonic()
+    raise RuntimeError("still rate-limited after 10 waits -- free-tier quota likely exhausted")
 
 METRICS = ("recall5_literal", "recall5_tiecredit", "recall10_literal", "recall10_tiecredit")
 
@@ -138,11 +171,26 @@ def stub_choose_n(goal_text: str, rows: list[dict]) -> tuple[int, str]:
     return RECOMMENDED_N, "no strong signal either way; use the recommended operating point"
 
 
+def _load_stub_choices() -> dict:
+    """{(set_id, goal_id): stub_modal_n} from a prior --stub run, if present."""
+    p = RUNS_DIR / "plan_eval_v1_stub.json"
+    if not p.exists():
+        return {}
+    d = json.loads(p.read_text())
+    out = {}
+    for sid, block in d.get("targets", {}).items():
+        for g in block.get("goals", []):
+            if "chosen_n_modal" in g:
+                out[(sid, g["goal_id"])] = g["chosen_n_modal"]
+    return out
+
+
 def run_eval(use_stub: bool = False) -> dict:
     out: dict = {"prompt_version": PROMPT_VERSION, "recommended_n": RECOMMENDED_N,
                  "repeats": REPEATS, "chooser": "stub_keyword_curve_reader" if use_stub else "llm",
                  "targets": {}}
     tallies: Counter = Counter()
+    stub_choices = {} if use_stub else _load_stub_choices()
 
     for tname, sid in TARGETS.items():
         rows = load_frontier(sid)
@@ -159,10 +207,10 @@ def run_eval(use_stub: bool = False) -> dict:
                         chosen.append(n)
                         rationales.append(why)
                     else:
-                        plan = make_plan(g["prompt"], sid, tname)
+                        plan = _paced_make_plan(g["prompt"], sid, tname)
                         chosen.append(plan["chosen_n"])
                         rationales.append(plan["rationale"])
-                except (PlannerUnavailable, PlannerError) as exc:
+                except (PlannerUnavailable, PlannerError, RuntimeError) as exc:
                     errors.append(f"{type(exc).__name__}: {exc}")
             if not chosen:
                 per_goal.append({"goal_id": g["id"], "error": errors[0] if errors else "no result"})
@@ -171,7 +219,7 @@ def run_eval(use_stub: bool = False) -> dict:
             planner_s = score_n(rows, modal_n)
             j = judge(g, planner_s, fixed_s)
             tallies[j["verdict"]] += 1
-            per_goal.append({
+            entry = {
                 "goal_id": g["id"], "spirit": g["spirit"], "prompt": g["prompt"],
                 "chosen_n_runs": chosen,
                 "chosen_n_modal": modal_n,
@@ -179,9 +227,20 @@ def run_eval(use_stub: bool = False) -> dict:
                                        "unique": sorted(set(chosen)),
                                        "stdev": round(statistics.pstdev(chosen), 2) if len(chosen) > 1 else 0.0},
                 "rationale_sample": rationales[0] if rationales else None,
+                "rationales_all": rationales,
                 "planner_score": planner_s, "fixed_score": fixed_s,
                 "judgement": j,
-            })
+            }
+            stub_n = stub_choices.get((sid, g["id"]))
+            if stub_n is not None:
+                entry["stub_n"] = stub_n
+                entry["stub_score"] = score_n(rows, stub_n)
+                entry["judgement_vs_stub"] = judge(g, planner_s, score_n(rows, stub_n))
+            per_goal.append(entry)
+            print(f"  {sid:9} {g['id']:<32} runs={chosen} spread={entry['determinism_spread']['unique']}")
+            # checkpoint so a mid-run rate-limit crash doesn't lose completed cells
+            out["targets"][sid] = {"fixed_score": fixed_s, "goals": per_goal}
+            (RUNS_DIR / "plan_eval_v1.partial.json").write_text(json.dumps(out, indent=2))
         out["targets"][sid] = {"fixed_score": fixed_s, "goals": per_goal}
 
     out["verdict_tally"] = dict(tallies)
@@ -191,18 +250,21 @@ def run_eval(use_stub: bool = False) -> dict:
 def _print_report(out: dict) -> None:
     for sid, block in out["targets"].items():
         print(f"\n================  {sid}  ================")
-        print(f"{'goal':<32} {'N (3 runs)':<16} {'modal':>5} {'p.rec':>6} {'N=10':>6} "
-              f"{'docks p/10':>10} {'verdict':>16}")
+        print(f"{'goal':<32} {'N (3 runs)':<14} {'mdl':>3} {'spread':>10} "
+              f"{'vs N=10':>15} {'stub':>4} {'vs stub':>15}")
         for gr in block["goals"]:
             if "error" in gr:
-                print(f"{gr['goal_id']:<32} {gr['error'][:60]}")
+                print(f"{gr['goal_id']:<32} {gr['error'][:70]}")
                 continue
             j = gr["judgement"]
+            sp = gr["determinism_spread"]
             runs = ",".join(str(x) for x in gr["chosen_n_runs"])
-            print(f"{gr['goal_id']:<32} {runs:<16} {gr['chosen_n_modal']:>5} "
-                  f"{j['planner_priority_recall']:>6} {j['fixed_priority_recall']:>6} "
-                  f"{str(j['planner_docked'])+'/'+str(j['fixed_docked']):>10} {j['verdict']:>16}")
-    print(f"\nverdict tally: {out['verdict_tally']}")
+            spread = f"{sp['min']}-{sp['max']} sd{sp['stdev']}"
+            vs_stub = gr.get("judgement_vs_stub", {}).get("verdict", "-")
+            stub_n = gr.get("stub_n", "-")
+            print(f"{gr['goal_id']:<32} {runs:<14} {gr['chosen_n_modal']:>3} {spread:>10} "
+                  f"{j['verdict']:>15} {str(stub_n):>4} {vs_stub:>15}")
+    print(f"\nverdict tally vs N=10: {out['verdict_tally']}")
 
 
 def main() -> int:

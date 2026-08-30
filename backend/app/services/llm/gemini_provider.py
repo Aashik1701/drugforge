@@ -6,6 +6,7 @@ SDK (the deprecated `google-generativeai` package is no longer a dependency).
 from __future__ import annotations
 
 import logging
+import os
 import time
 from typing import Iterator, Optional
 
@@ -15,7 +16,10 @@ from .base import LLMProvider
 
 logger = logging.getLogger(__name__)
 
-DEFAULT_MODEL = "gemini-2.0-flash"
+# gemini-2.0-flash was retired by Google ("no longer available"); the API's own
+# 404 message names gemini-3.6-flash as the replacement. Overridable via
+# GEMINI_MODEL. Not a tuning knob — the previous default simply 404s now.
+DEFAULT_MODEL = os.getenv("GEMINI_MODEL", "gemini-3.6-flash")
 
 
 class GeminiProvider(LLMProvider):

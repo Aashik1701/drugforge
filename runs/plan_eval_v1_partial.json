@@ -1,0 +1,124 @@
+{
+  "prompt_version": "v1",
+  "model": "gemini-3.6-flash",
+  "temperature": "provider default (unset)",
+  "status": "PARTIAL - Gemini free-tier daily request quota (limit 20/day) exhausted after ~19 calls",
+  "repeats_intended": 3,
+  "cox2_v1": {
+    "best_binder_cost_no_object": {
+      "chosen_n_runs": [
+        41,
+        41,
+        27
+      ],
+      "spread": {
+        "min": 27,
+        "max": 41,
+        "range": 14,
+        "stdev": 6.6,
+        "unique": [
+          27,
+          41
+        ]
+      },
+      "n_repeats_completed": 3
+    },
+    "top5_within_an_hour": {
+      "chosen_n_runs": [
+        27,
+        27,
+        4
+      ],
+      "spread": {
+        "min": 4,
+        "max": 27,
+        "range": 23,
+        "stdev": 10.84,
+        "unique": [
+          4,
+          27
+        ]
+      },
+      "n_repeats_completed": 3
+    },
+    "good_candidates_cheaply": {
+      "chosen_n_runs": [
+        4,
+        4,
+        30
+      ],
+      "spread": {
+        "min": 4,
+        "max": 30,
+        "range": 26,
+        "stdev": 12.26,
+        "unique": [
+          4,
+          30
+        ]
+      },
+      "n_repeats_completed": 3
+    },
+    "recover_8_of_top_10": {
+      "chosen_n_runs": [
+        30,
+        30,
+        10
+      ],
+      "spread": {
+        "min": 10,
+        "max": 30,
+        "range": 20,
+        "stdev": 9.43,
+        "unique": [
+          10,
+          30
+        ]
+      },
+      "n_repeats_completed": 3
+    },
+    "solid_shortlist_reasonable_cost": {
+      "chosen_n_runs": [
+        10,
+        10,
+        4
+      ],
+      "spread": {
+        "min": 4,
+        "max": 10,
+        "range": 6,
+        "stdev": 2.83,
+        "unique": [
+          4,
+          10
+        ]
+      },
+      "n_repeats_completed": 3
+    },
+    "quick_exploratory_look": {
+      "chosen_n_runs": [
+        4,
+        4
+      ],
+      "spread": {
+        "min": 4,
+        "max": 4,
+        "range": 0,
+        "stdev": 0.0,
+        "unique": [
+          4
+        ]
+      },
+      "n_repeats_completed": 2
+    }
+  },
+  "ace2_v1": {
+    "best_binder_cost_no_object": {
+      "chosen_n_runs": [
+        45
+      ],
+      "n_repeats_completed": 1
+    }
+  },
+  "note": "chosen_n reconstructed from the run-1 console log; the per-call JSON (with rationale text) was lost when the run crashed on the first 429. Rationales not captured this run."
+}

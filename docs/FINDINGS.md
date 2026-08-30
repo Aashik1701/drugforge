@@ -233,6 +233,27 @@ near-zero rank signal across the whole peptidomimetic top-k.
 > pre-trained models, not of a fresh surrogate. A rf fitted by leave-one-out on
 > ACE2's own docking labels ranks them at Spearman 0.637.
 
+> **Correction (2026-08-30, Phase-4 planner pass): the recommended `N = 10`
+> operating point is cox2-calibrated and does not transfer to ACE2.** Read
+> directly from the committed frontiers (`runs/frontier_cox2_v1.csv`,
+> `runs/frontier_ace2_v1.csv`):
+>
+> | | cox2_v1 @ N=10 | ace2_v1 @ N=10 |
+> |---|---|---|
+> | recall@10 tie-credited | **9/10** | **4/10** |
+> | recall@10 literal | 5/10 | 2/10 |
+> | recall@5 tie-credited | 4/5 | 1/5 |
+> | first N to reach r@10-tie >= 8 | **N = 10** (at the knee) | **N = 13** |
+> | first N to reach r@10-tie 10/10 | N = 32 | N = 24 |
+>
+> On cox2, `N = 10` is the tie-credited knee. On ACE2 it lands on the flat
+> pre-knee stretch -- `r@10-tie 4/10` is identical to `N = 8` and barely above
+> `N = 5`. The ACE2 curve steps up at `N = 13` (to 8/10, for +3 docks / ~+555 s)
+> and again at `N = 24` (to 10/10). The correct recommendation is **read the
+> target's own frontier knee** (`GET /api/funnel/frontier/{set_id}`), not carry
+> `N = 10` across. This holds independently of the LLM planner built in the same
+> pass. No Pass-9 number is edited.
+
 Artifacts: `runs/baseline_ace2_v1.json`, `runs/heldout_ace2_v1.json`,
 `runs/frontier_ace2_v1.{csv,svg}`, `runs/frontier_ace2_vs_cox2_pass9.svg`,
 CHANGELOG Pass 9.
@@ -343,6 +364,86 @@ open problems in the next section are unchanged. No follow-up pass is proposed.
 
 Artifacts: `runs/pass11_eval.json`, CHANGELOG Pass 11.
 
+### Stage 9, an LLM budget planner (Phase-4 agent pass, 2026-08-30)
+
+**Built:** `POST /api/agent/plan`. An LLM is shown a discovery goal, candidate-set
+metadata, and the cached recall-vs-budget frontier, and chooses one number --
+the docking budget `N` -- with a text rationale, emitting a tool sequence in the
+`/api/agent/runs` format. It does no chemistry, picks no thresholds or weights,
+invents no molecules, sees no docking result, and executes nothing (plan and run
+are separate calls). `N` is clamped to the server ceiling and the emitted
+sequence is re-validated through the Phase-3 submission validator in code, not
+in the prompt. Scope boundary: `docs/development/agent-planner.md`. 69 backend
+tests green (agent service + planner + all prior).
+
+**The question, narrowed:** not "does an LLM help" but "does an LLM reading the
+frontier pick `N` better than the fixed `N = 10`, *and* better than a five-line
+keyword-and-knee heuristic (`agents/plan_eval.py --stub`)". Scored offline
+against the same cached frontiers as every prior pass. Six goals were
+pre-registered before any run (`runs/plan_goals_v1.json`), spanning implied
+budgets from "cost no object" to "keep compute minimal". PROMPT_VERSION v1,
+untuned. Model: `gemini-3.6-flash` (the code's `gemini-2.0-flash` default was
+retired by Google mid-pass; replaced with the successor the API's own 404 names,
+consistently across all calls). Temperature: provider default (unset).
+
+**Measured (partial -- Gemini free-tier daily request quota, ~20/day, ran out
+after ~19 calls):** `cox2_v1` completed for 5 of 6 goals at 3 repeats each; one
+`ace2_v1` call. `runs/plan_eval_v1_partial.json`.
+
+**The determinism finding, which decides the rest.** On identical input, three
+repeats per goal:
+
+| goal | N (3 runs) | range |
+|---|---|---|
+| best_binder_cost_no_object | 41, 41, 27 | 14 |
+| top5_within_an_hour | 27, 27, 4 | **23** |
+| good_candidates_cheaply | 4, 4, 30 | **26** |
+| recover_8_of_top_10 | 30, 30, 10 | **20** |
+| solid_shortlist_reasonable_cost | 10, 10, 4 | 6 |
+| quick_exploratory_look | 4, 4 (n=2) | 0 |
+
+The sensible operating points on these curves are ~3-14 units apart. **Three of
+six goals vary by 20-26 units between identical calls** -- the planner's own
+run-to-run noise is wider than the decision it is being asked to make. On
+`recover_8_of_top_10` (goal: recover >= 8 of the true top-10) one of the three
+runs picked `N = 10`, which recovers 5/10 -- it does not satisfy the goal it was
+given. `PROMPT_VERSION v1` sets no temperature; **lowering temperature is the
+obvious first thing to try, and it was deliberately not tried in this run** (that
+is tuning before reporting; it belongs to a separate pass with both versions'
+numbers).
+
+**Answer to the three places an LLM could add value over keyword matching
+(from the partial cox2 data; ace2 unmeasured):**
+1. *Pick the ACE2 knee where the stub's keyword match does not* -- **unmeasured**
+   (1 ACE2 call: `N = 45` for "cost no object", directionally high, tells us
+   nothing about knee-finding).
+2. *Respect the explicit "about an hour" bound in `top5_within_an_hour`* --
+   **partial credit, unreliable.** Two of three runs picked `N = 27` (~54 min,
+   a better reading than the stub's `N = 32` = 72 min); the third picked `N = 4`.
+   The right instinct on 2/3 draws is not a decision.
+3. *Not regress on cox2 where `N = 10` is already the knee* -- **mostly.**
+   `solid_shortlist` ("nothing extreme") drew 10, 10, 4; `best_binder`
+   ("cost no object") drew 41/41/27, defensibly high for that goal. It is not
+   blindly regressing, but `good_candidates_cheaply` drawing `N = 30` once is a
+   clear miss.
+
+**Conclusion.** An LLM reading the frontier chooses in roughly the right
+region -- high for "cost no object", low for "cheap", near `N = 10` for
+"balanced" -- but at provider-default temperature its choice is **not stable
+enough to be called a decision** (three of six goals swing 20-26 units on
+identical input), it **does not demonstrably beat the keyword-and-knee stub**
+(the one place it read a constraint better, the hour bound, it got right on only
+two of three tries), and the frontier is a simple enough curve that a fixed
+heuristic reading it does fine -- exactly the outcome flagged as plausible when
+the pass was scoped. The **N=10 mis-calibration** it helped surface (Stage 6
+correction, General result #4) is real and holds regardless of the planner. A
+lower-temperature v2 is a reasonable next experiment; it is not run or claimed
+here.
+
+Artifacts: `runs/plan_goals_v1.json`, `runs/plan_eval_v1_stub.json`,
+`runs/plan_eval_v1_partial.json`, `docs/development/agent-planner.md`,
+`docs/development/agent-service.md`.
+
 ---
 
 ## Results that are not about DrugForge
@@ -404,6 +505,22 @@ Any docking evaluation over real medicinal-chemistry sets, which routinely
 contain boronic-acid warheads, organometallics, and other non-standard
 elements, will silently lose those molecules unless the pipeline checks for
 un-scorable atoms up front and reports the exclusion.
+
+### 4. A fixed docking-budget operating point does not transfer across targets
+
+The recommended `N = 10` (Stage 1 / README) was chosen on `cox2_v1`, where it
+sits exactly at the tie-credited recall@10 knee: 9/10, and `N = 10` is the
+first budget to clear 8/10. Applied unchanged to `ace2_v1` it recovers **4/10**
+tie-credited (identical to `N = 8`) because the ACE2 frontier's knee is at
+**`N = 13`** (-> 8/10) with full recovery at **`N = 24`**. Same nominal budget,
+9/10 vs 4/10 -- a factor of the target, not the method. Verified from
+`runs/frontier_cox2_v1.csv` and `runs/frontier_ace2_v1.csv`.
+
+The frontier is cheap to compute offline and is already served per set
+(`GET /api/funnel/frontier/{set_id}`). The portable recommendation is
+"dock to your target's own knee," read from that curve, not a carried-over
+constant. Same shape of finding as #2: a constant calibrated on one target,
+re-applied blind to another, silently misfires.
 
 ---
 

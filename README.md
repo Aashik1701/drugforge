@@ -708,6 +708,17 @@ literal (9/10 tie-credited) of its top-10, with 0 false negatives. Full literal
 recall@5 needs N = 32, where the saving drops to about 1.7x. The funnel filters
 4 of 45 candidates, so it can never dock more than 41.
 
+> **Correction (2026-08-30, Phase-4 planner pass): `N = 10` is cox2-specific,
+> not a portable default.** Verified from the committed frontiers
+> (`runs/frontier_cox2_v1.csv`, `runs/frontier_ace2_v1.csv`): on `cox2_v1`,
+> `N = 10` sits *at* the tie-credited recall@10 knee (9/10; N=10 is the first N
+> to reach >= 8/10). On `ace2_v1` the same `N = 10` gives **4/10** tie-credited
+> recall@10 -- identical to `N = 8`, on the flat pre-knee stretch. That curve's
+> knee is at **N = 13** (jumps to 8/10 for +3 docks, ~+555 s) and it maxes
+> (10/10) at **N = 24**. The correct recommendation is **read the target's own
+> frontier knee** (`GET /api/funnel/frontier/{set_id}`), not reuse `N = 10`.
+> No number above is edited; this note is additive.
+
 ### The honest boundary
 
 On `cox2_v1` the baseline's single strongest docker is `CHEMBL2315019` (a
