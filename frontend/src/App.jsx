@@ -44,6 +44,9 @@ const NotFound = lazy(() => import('./pages/NotFound.jsx'));
 const RegisterPage = lazy(() => import('./pages/Register.jsx'));
 const SignInPage = lazy(() => import('./pages/SignIn.jsx'));
 
+// Research / methodology (public)
+const ResearchPage = lazy(() => import('./pages/ResearchPage.jsx'));
+
 // Kept for direct access (visualizations)
 const MolecularVisualizationPage = lazy(() => import('./components/MolecularVisualizationPage.jsx'));
 
@@ -86,6 +89,9 @@ const AppContent = () => {
             {/* Auth */}
             <Route path="/register" element={<RegisterPage />} />
             <Route path="/signin" element={<SignInPage />} />
+
+            {/* Research / methodology (public) */}
+            <Route path="/research" element={<ResearchPage />} />
 
             {/* Molecular Visualization (standalone tool, protected) */}
             <Route path="/app/visualization" element={<ProtectedRoute><GlassLayout><MolecularVisualizationPage /></GlassLayout></ProtectedRoute>} />
