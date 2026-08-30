@@ -1286,6 +1286,19 @@ offline. Artifacts: `runs/baseline_ace2_v1.json`, `runs/features_ace2_v1.json`,
 `runs/frontier_ace2_v1.{csv,svg}`, `runs/frontier_ace2_v1_heldout.csv`,
 `runs/heldout_ace2_v1.json`, `runs/frontier_ace2_vs_cox2_pass9.svg`.
 
+> **Correction note appended 2026-08-30 (from Pass 10, not an edit to the
+> above).** This entry says several times that "the cheap models have near-zero
+> rank signal across the ACE2 top-k." That is correct **for the shipped
+> pre-trained models** (`binding_score`, `P(ace2)`) used by the frozen v7
+> prescreen. It does **not** extend to a fresh surrogate: Pass 10 found that a
+> RandomForest fitted by leave-one-out on ACE2's own docking labels (ECFP4 + 10
+> descriptors, Pass-5's F1 feature set) ranks ACE2 affinity at LOO Spearman
+> 0.637, R^2 0.548 -- comparable to cox2 (0.687). The narrow chemotype that
+> defeats the shipped models makes leave-one-out *easy* (every held-out molecule
+> has near-identical neighbours to interpolate from). Read the Pass 9 statements
+> as "the shipped models have no signal on ACE2," not "no signal is available
+> there." No number in this Pass 9 entry changes.
+
 ---
 
 # Pass 10 -- PRE-REGISTRATION: do receptor-aware features predict Vina affinity where fingerprints cannot? (2026-08-30)
@@ -1566,3 +1579,98 @@ of the time and the 1024 ECFP bits dominate. C1 (rank-average) and C3 (re-rank)
 may edge one target and lose the other -- the "finds the outlier, strands the
 easy ones" trade averaging out, not cancelling. A both-target clearance of the
 declared margin would be the only real result and would be a surprise.
+
+## Results (`funnel/pass11_eval.py`, `runs/pass11_eval.json`)
+
+LOO (rf, Pass-5 protocol) and each method as a ranker through the frontier
+logic. C3's K = F1's own first-N-to-recall@10-10/10 (22 cox2, 21 ACE2), fixed
+before running.
+
+### cox2_v1 (n=45)
+
+| method | LOO Spearman | R^2 | MAE | first N r@10 10/10 | first N r@10t 10/10 | first N r@5 5/5 | CHEMBL2315019 rank |
+|---|---:|---:|---:|---:|---:|---:|---:|
+| F1 | 0.687 | 0.407 | 0.434 | 22 | 20 | 22 | 20 |
+| F3 | 0.734 | 0.483 | 0.429 | 26 | 13 | 23 | **3** |
+| C1 rank-average | 0.753 | n/a | n/a | 25 | 10 | 25 | 9 |
+| C2 concat + rf | 0.707 | 0.418 | 0.440 | 20 | 20 | 20 | 20 |
+| C3 F1 then F3-rerank top-22 | **0.780** | n/a | n/a | **19** | 10 | **18** | **3** |
+
+### ace2_v1 (n=39 usable)
+
+| method | LOO Spearman | R^2 | MAE | first N r@10 10/10 | first N r@10t 10/10 | first N r@5 5/5 | #2 / #3 / #5 rank |
+|---|---:|---:|---:|---:|---:|---:|---|
+| F1 | 0.637 | 0.548 | 0.389 | 21 | 11 | 14 | 11 / 14 / 12 |
+| F3 | 0.637 | 0.529 | 0.415 | 34 | 7 | 16 | 6 / 4 / 12 |
+| C1 rank-average | 0.639 | n/a | n/a | 27 | 8 | 16 | 8 / 9 / 14 |
+| C2 concat + rf | 0.625 | 0.540 | 0.400 | 26 | 12 | 15 | 12 / 15 / 11 |
+| C3 F1 then F3-rerank top-21 | **0.696** | n/a | n/a | **20** | 7 | 15 | 6 / 4 / 12 |
+
+### Declared-margin check (pre-registered: both targets, LOO Spearman > better-single by >= 0.05 AND recall@10 literal 10/10 reached >= 3 N earlier)
+
+| method | cox2: d(Spearman), d(N) | ACE2: d(Spearman), d(N) | clears both? |
+|---|---|---|---|
+| C1 rank-average | +0.019, -3 | +0.001, -6 | **no** |
+| C2 concat + rf | -0.028, +2 | -0.012, -5 | **no** |
+| C3 F1 then F3-rerank | +0.045, +3 | +0.059, +1 | **no** |
+
+*(d(Spearman) = method minus the better of F1/F3; d(N) = better-of-F1/F3's N to
+recall@10 10/10 minus the method's, positive = method is earlier.)*
+
+**No method clears the declared margin on both targets.**
+
+## Task 2 -- the closing
+
+**F1 and F3 are not complementary in the pre-registered sense. The funnel
+prescreen investigation is closed.**
+
+- **C2 (concat + rf) is F1 with noise.** LOO Spearman 0.707 / 0.625 (below F3 on
+  cox2, below F1 on ACE2), and it ranks `CHEMBL2315019` at exactly F1's rank
+  (20), confirming what the pre-registration predicted: rf feature subsampling
+  drowns the 23 F3 columns under 1024 ECFP bits. Adding F3 to the matrix does
+  nothing.
+- **C1 (rank-average) dilutes both.** It splits the difference on the outlier
+  (`CHEMBL2315019` rank 9, between F1's 20 and F3's 3) and is a worse full-r@10
+  ranker than F1 on both targets (N=25 / N=27 vs F1's 22 / 21). Averaging two
+  orderings that disagree about which molecules are hard produces an ordering
+  worse than either at what each is good at.
+- **C3 (F1 primary, top-K re-ranked by F3) comes closest and still does not
+  clear.** It is directionally consistent -- LOO Spearman up on both targets
+  (0.780 cox2, 0.696 ACE2, both above either single family), full recall@10
+  reached slightly earlier on both (N=19, N=20) -- and it keeps F3's rank-3
+  placement of `CHEMBL2315019` while not wrecking the mid-pack the way F3 alone
+  does (cox2 r@5 5/5 at N=18 vs F1's 22 and F3's 23). But every individual
+  gain is at or inside the resolution floor declared before running: cox2
+  d(Spearman) = +0.045 (below the +0.05 threshold by 0.005) with d(N) = +3;
+  ACE2 d(Spearman) = +0.059 (clears) with d(N) = +1 (below +3). Each target
+  clears one of the two conditions and misses the other, and never the same
+  one. That is the "finds the outlier, strands the easy ones" trade partly
+  averaging out, not a net gain above noise -- exactly what the pre-stated
+  honesty constraint said would not count.
+- **C3 is also fragile by construction:** it can only re-order what F1 already
+  puts in its top-K. `CHEMBL2315019` is at F1 rank 20 <= K=22 on cox2, so C3
+  can pull it forward; had F1 ranked it 23rd, C3 could not. The one visible
+  positive depends on F1 nearly getting it right already.
+
+The durable takeaway from Passes 10-11 is a **mechanism, not a method**: F3's
+pharmacophore-product features (ligand aromatic count x pocket aromatic
+residues; ligand H-bond-acceptor count x pocket donor atoms) localise what
+ECFP4 misses about `CHEMBL2315019` -- aromatic and H-bond-acceptor
+complementarity, not substructure identity. Whether that mechanism can be
+turned into a prescreen that beats F1 on a metric that a single 45-molecule set
+can resolve is not answered here and is not pursued further.
+
+No policy change made or recommended. No follow-up experiment. Frozen v7 policy,
+docking params, and the four frozen contracts untouched. `funnel/pass11_eval.py`
+is additive and offline. No published number edited or retracted; the Pass 9
+correction note above is appended, not an edit.
+
+## Task 3 -- Pass 9 correction propagation (verified / fixed this pass)
+
+The Pass-10 finding that ACE2's "no signal" is about the *shipped* models, not a
+fresh surrogate, now appears in all three places:
+- `docs/FINDINGS.md` -- Stage 7 ("Correction to Stage 6"), plus a forward
+  pointer added at the end of Stage 6 this pass.
+- `README.md` -- the ACE2 held-out section, correction bullet added this pass.
+- this file -- the appended correction note at the end of the Pass 9 entry
+  above, added this pass (not an edit to Pass 9's text).

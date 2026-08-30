@@ -229,6 +229,10 @@ property, it dilutes cox2's lone outlier. On ACE2 both metrics are diffusely
 hard because there is no outlier to dilute; the cheap `binding_score` model has
 near-zero rank signal across the whole peptidomimetic top-k.
 
+> **Corrected in Stage 7:** "near-zero rank signal" is true of the *shipped*
+> pre-trained models, not of a fresh surrogate. A rf fitted by leave-one-out on
+> ACE2's own docking labels ranks them at Spearman 0.637.
+
 Artifacts: `runs/baseline_ace2_v1.json`, `runs/heldout_ace2_v1.json`,
 `runs/frontier_ace2_v1.{csv,svg}`, `runs/frontier_ace2_vs_cox2_pass9.svg`,
 CHANGELOG Pass 9.
@@ -297,6 +301,47 @@ survive into a better ranker (F3 strands the mid-pack, the Pass-7
 
 Artifacts: `runs/features_receptor_{cox2,ace2}_v1.json`, `runs/poses_ace2_v1.json`,
 `runs/pass10_eval.json`, CHANGELOG Pass 10.
+
+### Stage 8, F1 + F3 combination, and the close (CHANGELOG Pass 11, pre-registered)
+
+**Believed:** Stage 7 left one thread. On cox2, F3 ranks `CHEMBL2315019` at
+rank 3 while ranking the mid-pack worse; F1 is the reverse. If the two are
+genuinely complementary, some combination should beat the better of them.
+
+**Measured (pre-registered margin, both targets: LOO Spearman > better single by
+>= 0.05 AND full recall@10 literal reached >= 3 N earlier):** three methods.
+**C1** rank-average dilutes both (worse full-r@10 ranker than F1 on both
+targets). **C2** concat + single rf is F1 with noise -- rf feature subsampling
+drowns F3's 23 columns under 1024 ECFP bits, and it ranks `CHEMBL2315019` at
+exactly F1's rank 20. **C3** (F1 order, its top-K re-ranked by F3) comes closest
+-- LOO Spearman up on both (0.780 cox2, 0.696 ACE2), full recall@10 reached a
+little earlier (N=19, N=20), `CHEMBL2315019` kept at rank 3 without wrecking the
+mid-pack -- but on cox2 the Spearman gain is +0.045 (below the +0.05 threshold)
+and on ACE2 the N gain is +1 (below +3). Each target clears one condition and
+misses the other, never the same one.
+
+**Changed:** nothing. **No method clears the declared margin on both targets.
+F1 and F3 are not complementary in the pre-registered sense.** C3's gains are
+the Stage-7 "finds the outlier, strands the easy ones" trade partly averaging
+out, all inside the resolution a single 45-molecule set can support with no
+resampling -- and C3 is fragile besides, it can only re-order what F1 already
+places in its top-K.
+
+**The durable result of Passes 10-11 is a mechanism, not a method:** F3's
+pharmacophore-product features localise what ECFP4 misses about the
+long-standing cox2 outlier -- aromatic-count and H-bond-acceptor
+complementarity, not substructure identity. Turning that into a prescreen that
+beats F1 on a resolvable metric is not achieved here.
+
+**This closes the funnel prescreen investigation.** Eleven passes. The endpoint
+is the one stated at the start of Stage 2 and never overturned: cheap
+prescreening recovers a docking baseline's mid-pack hits at a real compute
+saving (N about 10 of 45 for 2/5 literal, 4/5 tie-credited recall@5, 0 false
+negatives, about 4x wall-clock), and does not recover the out-of-distribution
+top hits at any saving worth having. The frozen v7 policy is unchanged. The
+open problems in the next section are unchanged. No follow-up pass is proposed.
+
+Artifacts: `runs/pass11_eval.json`, CHANGELOG Pass 11.
 
 ---
 

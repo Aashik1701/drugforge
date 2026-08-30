@@ -779,10 +779,17 @@ was scored against it once.
   is the correct design going forward (see [`docs/FINDINGS.md`](docs/FINDINGS.md)
   2).
 - **ACE2 is not degenerate the way cox2 is.** There is no single dominant hard
-  molecule; the cheap `binding_score` model has near-zero rank signal across the
-  whole peptidomimetic top-k (baseline top-10 at prescreen ranks median 18 of
-  38). Pass 8's finding that recall@10 is "less degenerate" turns out to be
+  molecule; the *shipped* `binding_score` model has near-zero rank signal across
+  the whole peptidomimetic top-k (baseline top-10 at prescreen ranks median 18
+  of 38). Pass 8's finding that recall@10 is "less degenerate" turns out to be
   cox2-specific.
+- **Correction (CHANGELOG Pass 10):** "near-zero signal" applies to the shipped
+  pre-trained models, not to a fresh surrogate. A RandomForest fitted by
+  leave-one-out on ACE2's own docking labels ranks them at Spearman 0.637 (R2
+  0.548) -- comparable to cox2. The narrow chemotype that defeats the shipped
+  models makes leave-one-out easy, since every held-out molecule has near-
+  identical neighbours. ACE2 is "the shipped models have no signal here," not
+  "no signal is available."
 
 Reproduction guide: [`REPRODUCTION.md`](REPRODUCTION.md). Full analysis:
 [`docs/FINDINGS.md`](docs/FINDINGS.md), CHANGELOG Pass 9.
