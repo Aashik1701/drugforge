@@ -1495,3 +1495,74 @@ No policy change made or recommended. Frozen v7 policy, docking params, and the
 four frozen contracts untouched. `funnel/receptor_features.py` and
 `funnel/pass10_eval.py` are additive and offline. No published number edited or
 retracted.
+
+---
+
+# Pass 11 -- PRE-REGISTRATION: are F1 and F3 complementary, or is the investigation closed? (2026-08-30)
+
+Committed BEFORE `funnel/pass11_eval.py` exists or runs. **This is the final
+pass of the funnel prescreen investigation, regardless of outcome.**
+
+Pass 10 closed the receptor-aware question negative. One live thread: on cox2,
+F3 (pharmacophore x pocket) ranks `CHEMBL2315019` -- the out-of-distribution
+outlier nothing surfaced in ten passes -- at rank 3 of 45, while ranking the
+mid-pack worse; F1 (ligand-only ECFP4) is the reverse. This pass asks whether
+combining them nets a gain, or whether it is the same "finds the outlier,
+strands the easy ones" trade with no net improvement (Pass 7 `maxmin_diversity`).
+
+No new docking. No new feature families. No new targets. Frozen v7 policy,
+docking params, and the four frozen contracts (ComputeRouter / ResourceManager /
+JobStore / tool-registry) untouched. Additive, offline. Published numbers are
+appended to, never edited or retracted.
+
+## Primary metric
+
+**recall@10 literal** (first N to full 10/10 recovery), per Pass 8. recall@10
+tie-credited and recall@5 literal/tie-credited reported as secondary.
+
+## Combination methods (three, capped, no post-hoc additions)
+
+| # | method | rule |
+|---|---|---|
+| **C1** | rank-average | for each molecule, average its position in F1's LOO-OOF ascending order and F3's; re-sort ascending. No new model fit. |
+| **C2** | concat + single rf | horizontally stack F1's 1034 features and F3's 23 features (1057 total); one `RandomForestRegressor(n_estimators=300, random_state=0)`, LOO, refit per fold. |
+| **C3** | F1 primary, F3 re-ranks F1's shortlist | take F1's LOO-OOF order; re-sort its top-K by F3's LOO-OOF predicted affinity (ascending); tail unchanged. K = F1's own first-N-to-recall@10-10/10 (22 on cox2, 21 on ACE2 -- F1's operating point, fixed before this pass, not chosen to reach any specific molecule). |
+
+## Declared margin (before computing anything)
+
+F1 and F3 differ by 0.047 LOO Spearman on cox2 (inside n=45 noise) and are
+identical on ACE2 (0.637 = 0.637). To call F1+F3 **complementary** (a real
+result), a combination method must, **on BOTH targets simultaneously**:
+
+- **(a)** beat the better single family's LOO Spearman by **>= 0.05** (just
+  above the 0.047 cox2 F1<->F3 gap), AND
+- **(b)** reach full recall@10 literal (10/10) at **>= 3 N fewer** than the
+  better single family (3 N being the minimum this grid can resolve on one
+  candidate set with no resampling -- the same resolution floor Passes 6-7
+  used).
+
+An improvement on one target only is **not** an improvement and will be stated
+as such. Anything below this margin closes the investigation with no further
+recommendation and no follow-up pass.
+
+## Protocol
+
+- LOO, Pass-5 rf hyperparameters unchanged (`n_estimators=300, random_state=0`),
+  no scaling for rf, refit inside every fold. cox2 n=45; ACE2 n=39 usable.
+- Per method per target: LOO Spearman, R^2, MAE vs mean affinity, next to F1 and
+  F3 alone (recomputed fresh, deterministic).
+- Each method as a ranker through the existing frontier logic: recall@10
+  literal + tie-credited (primary), recall@5 literal + tie-credited (secondary),
+  first N to full recovery, vs frozen v7 and (cox2 only) the Pass-5 surrogate as
+  references.
+- Ranks of the known-hard molecules: `CHEMBL2315019` on cox2; `CHEMBL402987`
+  (#2), `CHEMBL252417` (#3), `CHEMBL400527` (#5) on ACE2.
+- No tuning against recall. K in C3 is fixed above before any result is seen.
+
+Expected outcome, stated so it is falsifiable: **no method clears the margin on
+both targets.** C2 (concat) is expected to be ~= F1 alone, because rf feature
+subsampling (`max_features='sqrt'` ~ 32 of 1057) will pick an F3 column only ~2%
+of the time and the 1024 ECFP bits dominate. C1 (rank-average) and C3 (re-rank)
+may edge one target and lose the other -- the "finds the outlier, strands the
+easy ones" trade averaging out, not cancelling. A both-target clearance of the
+declared margin would be the only real result and would be a surprise.
