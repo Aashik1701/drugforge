@@ -1285,3 +1285,62 @@ ace2 baseline used once, as intended. `funnel/heldout_ace2.py` is additive and
 offline. Artifacts: `runs/baseline_ace2_v1.json`, `runs/features_ace2_v1.json`,
 `runs/frontier_ace2_v1.{csv,svg}`, `runs/frontier_ace2_v1_heldout.csv`,
 `runs/heldout_ace2_v1.json`, `runs/frontier_ace2_vs_cox2_pass9.svg`.
+
+---
+
+# Pass 10 -- PRE-REGISTRATION: do receptor-aware features predict Vina affinity where fingerprints cannot? (2026-08-30)
+
+Committed BEFORE `funnel/receptor_features.py` or `funnel/pass10_eval.py` exist
+or run. Nine passes established that ligand-only features (ECFP4 + 10 RDKit
+descriptors) carry modest signal for docking score on cox2 (LOO Spearman ~0.68,
+Pass 5 rf) and near-zero rank signal across the ACE2 top-10 (Pass 9). The
+diagnosis those passes converged on: docking score is a property of the
+ligand-RECEPTOR pair; the cheap features describe the ligand alone. This pass
+tests the direct consequence -- do features that encode the ligand's fit to a
+specific pocket beat ligand-only features? It may fail; a clean negative closes
+the question.
+
+No new docking. Frozen v7 policy, docking params, and the four frozen contracts
+(ComputeRouter / ResourceManager / JobStore / tool-registry) untouched. Additive,
+offline. Published numbers are not edited or retracted.
+
+## Data actually available (checked before pre-registering)
+
+- `runs/baseline_cox2_v1.json` -- 45 molecules, real mean Vina affinities (4 seeds). No poses stored.
+- `runs/baseline_ace2_v1.json` -- 45 molecules; 39 usable (6 boronic acids un-dockable). No poses stored.
+- `backend/targets/{cox2,ace2}_receptor.pdbqt` + raw `1CX2.pdb` / `1R42.pdb`. Frozen boxes: cox2 centre [22.1, 10.5, -14.3], ace2 centre [53.1, 68.6, 31.2], both 20 A cubes.
+- `/tmp/funnel_baseline_110aff1e6d6c.db` -- the ACE2 baseline's private (ephemeral) job store, still on disk: 156 completed jobs each with the full docked-pose PDBQT. **The cox2 baseline's job store (Aug 28) is gone.** So pose-derived features can be computed for **ACE2 only**. The ACE2 MODEL-1 pose coordinates will be extracted once into a committed artifact so the result survives `/tmp` being cleared.
+
+## Feature families (four, capped, no post-hoc additions)
+
+| # | family | prescreen-usable? | one-line hypothesis |
+|---|---|---|---|
+| **F1** | **control** -- ECFP4 radius 2 / 1024 bits + the 10 RDKit descriptors (Pass 5's exact set, from `runs/features_{set}.json`) | **YES** | reproduces the Pass-5 baseline (cox2 rf LOO Spearman ~0.68); the number every other family is measured against |
+| **F2** | **ligand-vs-pocket shape/geometry** -- ligand 3D shape from one ETKDGv3 conformer (seed 42, MMFF -- the pre-docking conformer the pipeline builds): radius of gyration, asphericity, eccentricity, spherocity, NPR1/2, PMI1/2/3, inertial shape factor, molecular volume, heavy-atom count, longest interatomic distance. Pocket geometry from receptor atoms inside the frozen box: pocket heavy-atom count, pocket radius of gyration, pocket bounding-box spans, a grid-estimated pocket cavity volume. Complementarity ratios: ligand_volume / pocket_volume, ligand_Rg / pocket_Rg, ligand_length / pocket_span, ligand_volume / box_volume. | **YES** | a ligand that fills the pocket without exceeding it docks better; size/volume ratios in a mid range should score, tiny fragments and oversized ligands should score badly -- the "does it fit" signal fingerprints cannot express |
+| **F3** | **pharmacophore complementarity** -- ligand H-bond donor / acceptor / aromatic / hydrophobe / +ionisable / -ionisable counts (RDKit BaseFeatures factory + descriptor counts). Pocket counts from box residues by type: donor atoms, acceptor atoms, aromatic residues, hydrophobic residues, +/- charged residues. Features: the raw ligand counts, the (constant-per-target) pocket counts, and the products ligand_HBD x pocket_acc, ligand_HBA x pocket_don, ligand_arom x pocket_arom, ligand_hydrophobe x pocket_hydrophobe, ligand_+ x pocket_-, ligand_- x pocket_+. | **YES** | ligands whose donors / acceptors / aromatics match what the pocket presents dock better; the pocket-count columns are what could let a model trained on one target transfer to the other |
+| **F4** | **pose-derived interaction** -- from the best pose (MODEL 1) of each completed ACE2 dock, averaged over the 4 seeds: ligand-receptor heavy-atom contacts < 4.0 A, close contacts < 3.5 A, buried ligand SASA fraction, min distance to the catalytic Zn and to the HEXXH residues (His374/His378/Glu402 of 1R42), pose radius of gyration, pose-centroid distance from box centre, count of ligand atoms outside the box. **ACE2 only** (cox2 poses not retained). | **NO -- CEILING ESTIMATE ONLY** | measures how much signal the real pose carries for affinity at all; it is computed FROM the docking result, cannot be had for an un-docked molecule, and is **never** a prescreen candidate. If its own LOO R^2 is low, the surrogate direction is bounded regardless of features. |
+
+## Protocol
+
+- **LOO, Pass-5 exact.** `RandomForestRegressor(n_estimators=300, random_state=0)`, raw features (no scaling for rf), refit inside every fold. cox2 n=45; ACE2 n=39 usable. Reuse Pass 5's rf hyperparameters unchanged; no tuning against recall.
+- **Per family per target:** LOO Spearman, R^2, MAE vs mean affinity.
+- **Ranker evaluation:** each family's LOO out-of-fold predictions -> sort ascending -> the existing frontier logic. recall@10 literal + tie-credited (primary, per Pass 8), recall@5 literal + tie-credited (secondary), first N to full recovery, against the frozen v7 policy and the Pass-5 surrogate as references (cox2: `runs/frontier_cox2_v1.csv` + `runs/surrogate_cox2_v1.json`; ACE2: `runs/frontier_ace2_v1.csv`).
+- **Known-hard molecules:** rank under each family -- `CHEMBL2315019` on cox2; `CHEMBL402987` (#2), `CHEMBL252417` (#3), `CHEMBL400527` (#5) on ACE2.
+- **Cross-target transfer (Task 3):** fit each family on ALL of set A, predict ALL of set B (single fit, no LOO), Spearman(pred, true). Both directions. F1 should give ~0 by construction (no receptor information). Chemotype distributions differ, so a negative result is ambiguous; a positive result is not.
+- **Feature caches** committed with a content SHA-256 over the sorted feature rows, same discipline as the candidate sets.
+- Dependencies: RDKit (`Descriptors3D`, `rdFreeSASA`, `ComputeMolVolume`, ETKDGv3, BaseFeatures factory), a hand-rolled PDB/PDBQT ATOM-record parser, numpy, scikit-learn. **No new heavyweight dependency.**
+
+## Bar to clear (declared)
+
+- **Prescreen-usable (F2, F3):** clears the bar only if BOTH -- (a) LOO Spearman on cox2 exceeds F1-control's cox2 LOO Spearman (recomputed fresh for exact comparability), AND (b) LOO Spearman on ACE2 is materially above F1-control's ACE2 value and above ~0.2 (a floor for "any signal at all" at n=39). Single-target improvements are explicitly weak and will be reported as such.
+- **Cross-target transfer:** a prescreen-usable receptor-aware family shows positive Spearman(pred, true) in at least one train->test direction, where F1 gives ~0. Positive transfer is the strongest possible evidence in this pass that the features encode fit rather than this specific set.
+- **F4 ceiling:** no bar -- diagnostic. If ACE2 LOO R^2 < ~0.3 with the real pose, that is a reportable ceiling: even perfect pose knowledge does not linearly predict affinity, and the surrogate direction is bounded.
+
+Expected outcome, stated so it is falsifiable: **F2/F3 probably do NOT clear the
+prescreen bar** -- comparing bulk ligand shape/pharmacophore to a static pocket,
+without placing the ligand, is a crude proxy for fit, and Vina's own score is
+dominated by terms (per-atom vdW/electrostatics over the actual pose, and for
+ACE2 a Zn interaction it does not model at all) that these features cannot see.
+The most likely substantive result is the F4 ceiling: whether the real pose even
+linearly predicts affinity on ACE2. A surprise in either direction would be
+worth understanding before trusting it.
