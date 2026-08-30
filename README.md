@@ -24,9 +24,15 @@ structures and a deterministic tool-calling loop.
 > **Status.** A working prediction, visualisation, and docking tool. An
 > asynchronous compute layer that is implemented and tested. A computational
 > funnel that has been built and evaluated. The data structures and the
-> deterministic loop that an agent will eventually use. There is no autonomous
-> agent, no LLM planner, and no candidate generation yet. Every claim below is
-> marked with where it stands.
+> deterministic loop that an agent uses, plus a first LLM planner endpoint
+> (`POST /api/agent/plan`) that chooses a docking budget. There is no
+> autonomous multi-step agent and no candidate generation yet. Every claim
+> below is marked with where it stands.
+>
+> The **status of record for the research** — every funnel and planner pass,
+> what each measured, and its limits — is [`docs/FINDINGS.md`](docs/FINDINGS.md),
+> with `backend/app/funnel/CHANGELOG.md` as the per-pass log. The feature
+> table below is the status of record for the product.
 
 | Legend | Meaning |
 |---|---|
