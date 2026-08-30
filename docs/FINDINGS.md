@@ -233,6 +233,71 @@ Artifacts: `runs/baseline_ace2_v1.json`, `runs/heldout_ace2_v1.json`,
 `runs/frontier_ace2_v1.{csv,svg}`, `runs/frontier_ace2_vs_cox2_pass9.svg`,
 CHANGELOG Pass 9.
 
+### Stage 7, receptor-aware features (CHANGELOG Pass 10, pre-registered)
+
+**Believed (pre-registered):** the six prior stages converged on one diagnosis,
+docking score is a property of the ligand-receptor *pair* and the cheap
+features describe the ligand alone. The direct consequence: features that
+encode the ligand's fit to a specific pocket should predict affinity better
+than ligand-only features, and (the sharper test) a model trained on one
+target's docking results should transfer to the other only if its features
+carry receptor information.
+
+**Measured:** four families, LOO on both targets (rf, Pass-5 protocol). **F1**
+control (ECFP4 + 10 descriptors); **F2** ligand 3D shape vs a static pocket,
+plus fit ratios; **F3** ligand pharmacophore counts times complementary pocket
+counts; **F4** interaction features from the real docked pose (ACE2 only, cox2
+poses not retained) -- *not a prescreen*, it is computed from the docking result
+and reported only as a ceiling.
+
+- **F1 control LOO Spearman: cox2 0.687, ACE2 0.637.**
+- **F2 (shape): a clear loser** -- cox2 0.466, ACE2 0.093.
+- **F3 (pharmacophore complementarity): matches F1 on ACE2 (0.637) and is
+  +0.047 above F1 on cox2 (0.734)** -- inside the n=45 LOO noise band, and a
+  *worse* ranker than F1 on both targets.
+- Cross-target transfer Spearman: **F1 0.62 / 0.65** both directions, **F2 0.32
+  / 0.58, F3 0.60 / 0.66**.
+- **F4 pose ceiling (ACE2): LOO R2 0.448** -- above the pre-declared 0.3
+  "bounded" line, so the pose does carry linear affinity signal, but *below* F1
+  fingerprints (R2 0.548).
+
+**Changed:**
+
+1. **The receptor-aware-features question closes, negative.** Nothing
+   prescreen-usable beats ligand-only fingerprints + descriptors on either
+   target, under LOO Spearman or as a ranker. Bulk shape vs a static pocket
+   (F2) carries almost nothing; pharmacophore complementarity (F3) is a wash.
+2. **The transfer test is inconclusive because F1 also transfers.** The
+   pre-registration assumed ligand-only features would fail transfer "by
+   construction." They did not: docking *rank* is substantially
+   receptor-independent (bigger, more lipophilic, more rigid ligands dock more
+   negatively against any pocket). So a receptor-aware family transferring is
+   not diagnostic of "encodes fit," and none transfers better on ranking. F3
+   does transfer with positive R2 where F1 goes negative -- pocket columns aid
+   *calibration*, not *ranking*, and a prescreen needs ranking.
+3. **The pose ceiling is modest and below the ligand-only fit.** Even features
+   computed *from* the docking result do not beat a fresh ECFP4 rf on ACE2. A
+   crude interaction-feature set will not advance the surrogate direction; a
+   proper per-residue interaction fingerprint or energy decomposition is
+   untested.
+4. **Correction to Stage 6.** Pass 9's "the cheap models have near-zero rank
+   signal across the ACE2 top-k" is about the *shipped pre-trained models*. It
+   does not extend to a fresh surrogate: F1 rf fitted by LOO on ACE2's own
+   docking labels ranks them at Spearman 0.637, higher R2 than on cox2. The
+   narrow chemotype that defeats the shipped models makes LOO *easy* (dense
+   neighbours). ACE2 is "the shipped models have no signal here," not "no
+   signal is available."
+
+**One mechanism worth keeping:** F3 ranks `CHEMBL2315019` -- the cox2 baseline
+#1 out-of-distribution outlier that nothing surfaced across nine passes -- at
+**rank 3 of 45** (F1: 20). Aromatic-count and H-bond-acceptor complementarity,
+not substructure identity, is what ECFP4 was missing about it. It does not
+survive into a better ranker (F3 strands the mid-pack, the Pass-7
+`maxmin_diversity` trade), so it is a localisation of the miss, not a fix.
+
+Artifacts: `runs/features_receptor_{cox2,ace2}_v1.json`, `runs/poses_ace2_v1.json`,
+`runs/pass10_eval.json`, CHANGELOG Pass 10.
+
 ---
 
 ## Results that are not about DrugForge
@@ -303,10 +368,14 @@ Open problems, stated as such, not a committed roadmap.
 
 - **Docking-aware cheap features.** The current features are ligand-only
   (ECFP4 + physicochemical descriptors). They carry a real but limited signal
-  for docking score (LOO rho about 0.6-0.7) and miss out-of-distribution top dockers
-  entirely. Features that encode the ligand *against the pocket* (interaction
-  fingerprints, pharmacophore-to-pocket distances, shape complementarity)
-  would be a different input class, not a reweighting of this one.
+  for docking score (LOO rho about 0.6-0.7) and miss out-of-distribution top
+  dockers entirely. Stage 7 tested the two cheapest receptor-aware options,
+  bulk shape vs a static pocket and pharmacophore complementarity, and **neither
+  beat ligand-only features**. What is untested: a proper per-residue
+  interaction fingerprint or an energy-term decomposition. The Stage-7 pose
+  ceiling (features from the real docked pose) is only LOO R2 about 0.45 on
+  ACE2, and below the ligand-only fit, so this direction may be more bounded
+  than it looks.
 
 - **A larger, deliberately diversity-stratified candidate set.** Pass 8 Task 4
   scoped a ~100-molecule cox2 rebuild at ~4.4 h of docking and near-zero

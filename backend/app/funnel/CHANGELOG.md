@@ -1344,3 +1344,154 @@ ACE2 a Zn interaction it does not model at all) that these features cannot see.
 The most likely substantive result is the F4 ceiling: whether the real pose even
 linearly predicts affinity on ACE2. A surprise in either direction would be
 worth understanding before trusting it.
+
+## Results (`funnel/receptor_features.py`, `funnel/pass10_eval.py`)
+
+Feature caches: `runs/features_receptor_cox2_v1.json` (sha `fb27135c664a5d4e...`),
+`runs/features_receptor_ace2_v1.json` (sha `bf7b5914cafca719...`), ACE2 poses
+extracted from the ephemeral job store to `runs/poses_ace2_v1.json`. Eval:
+`runs/pass10_eval.json`.
+
+**Computability.** F1/F2/F3 computed for all 45 molecules of each set (0
+conformer-embedding failures). F4 computed for 39/45 ACE2 (the 6 boronic acids
+were never docked, so no pose exists); F4 not computable for cox2 at all (that
+baseline's job store was not retained). cox2 pocket: 465 atoms / 79 residues
+inside box+4 A; ACE2 pocket: 823 atoms / 142 residues (the Zn site is more
+buried, more protein around the box).
+
+### LOO (rf, Pass-5 protocol) -- affinity fit
+
+| target | family | prescreen? | n | LOO Spearman | R^2 | MAE | CHEMBL2315019 rank | ACE2 #2/#3/#5 rank |
+|---|---|---|---:|---:|---:|---:|---:|---:|
+| cox2_v1 | F1 control | yes | 45 | **0.687** | 0.407 | 0.434 | 20 | -- |
+| cox2_v1 | F2 shape | yes | 45 | 0.466 | 0.251 | 0.464 | 35 | -- |
+| cox2_v1 | F3 pharmacophore | yes | 45 | **0.734** | 0.483 | 0.429 | **3** | -- |
+| ace2_v1 | F1 control | yes | 39 | **0.637** | 0.548 | 0.389 | -- | 11 / 14 / 12 |
+| ace2_v1 | F2 shape | yes | 39 | 0.093 | 0.297 | 0.587 | -- | 16 / 12 / 21 |
+| ace2_v1 | F3 pharmacophore | yes | 39 | 0.637 | 0.529 | 0.415 | -- | **6 / 4** / 12 |
+| ace2_v1 | F4 pose (CEILING) | **NO** | 39 | 0.529 | 0.448 | 0.481 | -- | 6 / 23 / 8 |
+
+F1-here (0.687 on cox2) matches Pass 5's published 0.679 to within LOO noise;
+it is the control for this pass.
+
+### Ranker (LOO out-of-fold order -> frontier; full usable set, not v7-survivors, so indicative only)
+
+| target | family | first N r@10 10/10 | first N r@5 5/5 |
+|---|---|---:|---:|
+| cox2_v1 | F1 | 22 | 22 |
+| cox2_v1 | F2 | 35 | 35 |
+| cox2_v1 | F3 | 26 | 23 |
+| ace2_v1 | F1 | 21 | 14 |
+| ace2_v1 | F2 | 34 | 21 |
+| ace2_v1 | F3 | 34 | 16 |
+| ace2_v1 | F4 (ceiling) | 36 | 23 |
+
+Reference (full recovery): frozen v7 -- cox2 r@10 N=36 / r@5 N=32; ace2 r@10
+N=35 / r@5 N=30. Pass-5 surrogate (cox2) r@10 N=21 / r@5 N=21.
+
+### Cross-target transfer (fit all of A, predict all of B)
+
+| family | cox2 -> ace2 Spearman (R^2) | ace2 -> cox2 Spearman (R^2) |
+|---|---:|---:|
+| F1 ligand-only | +0.622 (-0.103) | +0.653 (+0.190) |
+| F2 shape | +0.320 (+0.216) | +0.576 (+0.227) |
+| F3 pharmacophore | +0.604 (+0.394) | +0.657 (+0.543) |
+
+## Task 4 -- the shape of the result
+
+**Prescreen-usable vs ceiling-only, stated plainly:** F1, F2, F3 are
+prescreen-usable (computable before docking from SMILES + the receptor
+structure + the box). **F4 is not** -- it is computed from the docked pose,
+cannot exist for an un-docked molecule, and is reported only as a ceiling
+estimate.
+
+**1. Nothing prescreen-usable beats the control. The bar is not cleared.**
+F2 (bulk shape vs a static pocket, fit ratios) is a clear loser: LOO Spearman
+0.466 on cox2 (vs F1's 0.687) and 0.093 on ACE2 (essentially zero). F3
+(pharmacophore complementarity) matches F1 exactly on ACE2 (0.637 = 0.637) and
+is +0.047 Spearman above F1 on cox2 (0.734 vs 0.687) -- inside the LOO noise
+band for n=45, and F3 is a *worse* ranker than F1 on both targets (first N to
+full recovery 23/26 vs 22 on cox2; 34 vs 21 for r@10 on ACE2). **"Receptor-aware
+features computable without docking do not beat ligand-only features on these
+sets."** The open question this pass set out to answer is closed, negative.
+
+**2. The cross-target transfer test is invalidated by F1 also transferring.**
+The pre-registration predicted ligand-only F1 would fail transfer "by
+construction -- it contains no receptor information." It did not fail: F1
+transfers at Spearman +0.62 / +0.65 both directions. Docking *rank* has a large
+receptor-independent component (bigger, more lipophilic, more rigid ligands
+dock more negatively against any pocket -- Vina's score is dominated by a count
+of favourable vdW contacts that scales with ligand size). So a receptor-aware
+family also transferring is **not** evidence it "encodes fit," and in fact F2
+transfers *worse* than F1 and F3 the same on Spearman. F3 does transfer with
+positive R^2 both directions where F1 goes negative (+0.39/+0.54 vs -0.10/+0.19)
+-- the pocket columns help *calibration* (absolute scale), not *ranking*. A
+prescreen needs ranking. No net gain.
+
+**3. The F4 pose ceiling is real but modest, and below the ligand-only fit.**
+Interaction features from the true docked pose (contacts, buried SASA,
+catalytic-Zn / HEXXH distances, pose Rg) give LOO R^2 0.448 on ACE2 -- above the
+pre-declared 0.3 "bounded" threshold, so pose knowledge does linearly carry
+affinity signal. But F1 fingerprints do **better** (R^2 0.548, Spearman 0.637 vs
+F4's 0.448 / 0.529). Even computing features *from the docking result*, a crude
+hand-rolled interaction-feature set does not extract the affinity signal better
+than a fresh ECFP4 rf. A naive interaction-feature approach will not advance the
+surrogate direction; a proper per-residue interaction fingerprint or an
+energy-term decomposition might, and is untested here.
+
+**4. The one substantive positive is a mechanism, not a win: F3 ranks the
+known-hard molecules far better than F1.** CHEMBL2315019 -- the cox2 baseline #1
+out-of-distribution outlier that no cheap signal surfaced across nine passes --
+is **rank 3 of 45** under F3 (rank 20 under F1, rank 35 under F2). On ACE2, F3
+ranks the three buried top-5 dockers 6 / 4 / 12 (F1: 11 / 14 / 12). The
+pharmacophore-product features (ligand aromatic count x pocket aromatic
+residues; ligand HBA x pocket donor atoms) capture something about these
+polyaromatic, H-bond-rich molecules that 1024 sparse ECFP4 bits do not. But F3
+trades this for worse mid-pack ranking (its overall first-N is worse than F1),
+so it yields no better funnel -- the same "finds the outlier, strands the easy
+ones" trade seen with Pass 7's `maxmin_diversity`.
+
+## Unanticipated
+
+- **F1 (ligand-only ECFP4) has strong LOO signal on ACE2** (Spearman 0.637,
+  R^2 0.548 -- higher R^2 than on cox2). Pass 9's "near-zero cheap-model rank
+  signal across the ACE2 top-10" was about the *frozen pre-trained models*
+  (`binding_score`, `P(ace2)`), and it does **not** extend to a fresh surrogate:
+  a rf fitted by leave-one-out on ACE2's own docking labels ranks them fine.
+  The narrow chemotype that makes ACE2 hard for the frozen models makes it
+  *easier* for LOO (every held-out molecule has near-identical neighbours to
+  interpolate from). This corrects the Pass-9 framing: ACE2 is not "no signal
+  available," it is "the shipped models have no signal there."
+- Cross-target transfer works for ligand-only features because docking rank is
+  substantially receptor-independent -- an unanticipated property of the metric,
+  and the reason the transfer test cannot answer the question it was designed
+  for.
+- F3 surfacing CHEMBL2315019 at rank 3 is the first time in ten passes anything
+  prescreen-usable has ranked that molecule near the top. It does not survive
+  into a better ranker, but it localises what ECFP4 misses about it:
+  aromatic-count and H-bond-acceptor complementarity, not substructure identity.
+- The F4 pose features underperforming fingerprints was not expected -- it
+  suggests either the interaction featurisation is too crude or the ACE2 LOO
+  fit is simply very strong on a narrow set (probably both).
+
+## Conclusion for the record
+
+Receptor-aware features computable without docking (F2 shape, F3 pharmacophore
+complementarity) **do not beat ligand-only fingerprints + descriptors** on cox2
+or ACE2, under LOO affinity Spearman or as rankers. The cross-target transfer
+test intended to distinguish "encodes fit" from "encodes this set" is
+inconclusive: ligand-only features transfer too (docking rank is largely
+receptor-independent), so a receptor-aware family transferring is not
+diagnostic, and none transfers better on ranking anyway. The pose-derived
+ceiling (F4, ACE2, not a prescreen) is R^2 ~0.45 -- signal exists in the pose
+but a crude interaction-feature set extracts it *worse* than fingerprints. Net:
+the surrogate direction is not advanced by cheap receptor-aware features as
+built here; the remaining paths (proper interaction fingerprints, a better cheap
+binding model, a larger diverse candidate set) are unchanged from the Pass-8/9
+open-problems list. F3's rank-3 placement of the long-standing cox2 outlier is a
+mechanism worth remembering but is not, on its own, a better prescreen.
+
+No policy change made or recommended. Frozen v7 policy, docking params, and the
+four frozen contracts untouched. `funnel/receptor_features.py` and
+`funnel/pass10_eval.py` are additive and offline. No published number edited or
+retracted.
